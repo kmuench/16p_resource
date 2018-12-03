@@ -1,0 +1,235 @@
+---
+title: "[Figure 5] Differential Expression Analysis on Integration(-) clones"
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+This code takes the output of setup.Rmd, submits that gene expression data to DESeq2, and visualizes the output.
+
+# Set up workspace
+## Import the variables you need
+```{r}
+# import .csv file with user paths and info written out
+userVars <- read.delim("../userVars.csv", stringsAsFactors=FALSE, sep=",")
+
+# print(userVars) # uncomment to include output in notebook to document variables in .html notebook output for this run
+
+# user-determined variables used for generating filenames
+currDate <- userVars[userVars$variable=='currentDate', 'path']
+projDir <- userVars[userVars$variable=='projectDirectory', 'path']
+myAlpha <- userVars[userVars$variable=='myAlpha', 'path']
+
+pathToSetupData <- userVars[userVars$variable=='date_mostRecent_setup', 'path']
+pathTo16pGeneList <- userVars[userVars$variable=='pathTo16pGeneList', 'path']
+pathToSFARIgene <- userVars[userVars$variable=='pathToSFARIgene', 'path']
+pathToSexGenes <- userVars[userVars$variable=='pathToSexGenes', 'path']
+
+```
+
+## Make folders for this
+```{r}
+# name for files etc
+expName <- 'deseq'
+
+# make folder to contain experiment output
+
+## for output
+pathToAllProjectDir <- paste0(projDir, 'output/figure5/', expName)
+dir.create(pathToAllProjectDir)
+
+## main folder
+pathToProjectDir <- paste0(projDir, 'output/figure5/', expName,'/', currDate)
+dir.create(pathToProjectDir)
+
+## make folder to contain non-RData output
+pathToProjectOutput <- paste0(pathToProjectDir,'/other')
+dir.create(pathToProjectOutput)
+
+## make folder for RData vars
+pathToRData <- paste0(pathToProjectDir,'/RData')
+dir.create(pathToRData)
+
+```
+
+# Load needed variables
+```{r}
+load( paste0(projDir, 'output/figure5/setup/', pathToSetupData, "/RData/", pathToSetupData, "_setup_DESeqWorkspace.RData") )
+
+load(pathTo16pGeneList)
+
+sexGenes <- read.delim(pathToSexGenes, sep=",")
+```
+
+
+# Differential Expression Analysis
+```{r}
+# Load needed variables
+library(DESeqAid)
+
+# direct written outputs to designated project output folder
+setwd(pathToProjectOutput)
+
+# DESeq
+dds <- DESeq(myData)
+
+# perform DESeq analysis
+deseqOutput <- deseq_contrasts(dds, myAlpha, c('Genotype', 'DEL', 'WT'), 'WTvDEL_collapsed', currDate, expName, geneList16p)
+
+deseqOutput_df <- data.frame(deseqOutput)
+deseqOutput_signif_df <- deseqOutput_df[which(deseqOutput_df$padj < myAlpha),]
+
+# save RData files with the above
+setwd(pathToRData)
+save(deseqOutput_df, file = 'deseqOutput_df_all.RData')
+save(deseqOutput_signif_df, file = 'deseqOutput_df_signif_all.RData')
+
+# only look at 16p genes
+deseqOutput_16p<- subset(deseqOutput_df, row.names(deseqOutput_df) %in% geneList16p[,1] )
+
+# save names of DE genes
+setwd(pathToProjectOutput)
+write.table(row.names(deseqOutput_signif_df) , file = 'namesOfDEGenes.txt', quote = FALSE, row.names=FALSE, col.names=FALSE)
+namesOfDEGenes <- row.names(deseqOutput_df[which(deseqOutput_df$padj < myAlpha),])
+
+setwd(pathToRData)
+save(namesOfDEGenes, file = 'namesOfDEGenes.RData')
+
+# print some reports
+print(paste0('Number of genes DE with padj < ', myAlpha, ': ', nrow(deseqOutput_signif_df)) )
+
+print('16p gene report:')
+print(paste0('Number of 16p genes, total, in input list: ', nrow(deseqOutput_16p)))
+print(paste0('Number of DE 16p genes: ', nrow(deseqOutput_16p[deseqOutput_16p$padj < myAlpha,])))
+
+
+# Sex gene report
+deseqOutput_sex<- subset(deseqOutput_df, row.names(deseqOutput_df) %in% sexGenes[,1] )
+print('Sex gene report:')
+print(paste0('Number of Sex genes, total, in input list: ', nrow(deseqOutput_sex)))
+print(paste0('Number of DE Sex genes: ', nrow(deseqOutput_sex[deseqOutput_sex$padj < myAlpha,])))
+
+```
+
+
+
+# Visualize data
+
+## Volcano plot of data
+```{r}
+setwd(pathToProjectOutput)
+
+makeVolcanoPlot(deseqOutput_df, 
+                geneList16p[,1], 
+                '16p Region Gene', 
+                paste0(currDate, ' ', expName), 
+                'Log2(Shrunken Fold Change)', 
+                '-Log10(Adjusted P-Value)',
+                currDate,
+                'volcanoPlot')
+
+```
+
+## Bar Plot
+```{r}
+setwd(pathToProjectOutput)
+
+fcSortBarPlot_lfcShrink(deseqOutput, geneList16p, '16p Genes', 0.58, 'DE Genes using design = ~Sex + GrowBatch + Genotype', 30, 7)
+fcSortBarPlot_lfcShrink(deseqOutput, geneList16p, '16p Genes', 0, 'DE Genes using design = ~Sex + GrowBatch + Genotype', 12, 5)
+
+
+```
+
+
+## Make heatmap
+### Prep plotting data
+```{r}
+
+library(RColorBrewer)
+
+# reorganize sampleTable_collapsed so F at the top of each category - order by two cols, Genotype and Sex
+sampleTable_collapsed <- sampleTable_collapsed[with(sampleTable_collapsed, order(Genotype, Sex)), ]
+
+# create plotting data - just DE genes
+plotData <- assay(myData_vst_bc)
+plot_de <- plotData[which(rownames(plotData) %in% namesOfDEGenes),]
+plot_de <- plot_de[,match(sampleTable_collapsed$Line, colnames(plot_de))]
+
+# create annotations
+my_pheno_col <- data.frame(sampleTable_collapsed[,c('Genotype', 'Sex')])
+  
+# define annotation colors
+annColors <- list(Genotype = c(DEL='#636363',WT='#bdbdbd'),
+                  Sex = c(F = '#000000', M= '#bdbdbd') )
+
+  
+```
+
+
+### Plot: Z-scores, VST-normalized, batch corrected expression
+```{r}
+
+# load needed libraries
+library(pheatmap)
+
+# plot pheatmap
+setwd(pathToProjectOutput)
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_BuPu_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="BuPu")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+```
+
+
+
+
+# How much does this gene list intersect with SFARI gene list?
+
+## Import SFARI gene list
+```{r}
+# import SFARI gene ASD risk gene list
+sfariList <- read.csv(pathToSFARIgene, header=TRUE)
+sfariList$gene.score <- as.factor(sfariList$gene.score)
+
+```
+
+
+## Merge our DE genes with SFARI list
+```{r}
+
+# merge the two
+genes_annot_onlyRisk <- merge(deseqOutput_df, sfariList, by.x='row.names', by.y='gene.symbol')
+genes_annot <- merge(deseqOutput_df, sfariList, by.x='row.names', by.y='gene.symbol', all=TRUE)
+
+# order by padjusted
+genes_annot_onlyRisk <- genes_annot_onlyRisk[order(genes_annot_onlyRisk$padj, decreasing=FALSE),]
+genes_annot <- genes_annot[order(genes_annot$padj, decreasing=FALSE),]
+
+# write to file
+setwd(pathToProjectOutput)
+write.table(genes_annot, paste0(currDate, '_deseqOutput_plusSFARI.csv'), quote=FALSE)
+write.table(genes_annot_onlyRisk, paste0(currDate, '_deseqOutput_plusSFARI_sfariRiskOnly.csv'), quote=FALSE)
+
+
+```
+
+
+# HOUSEKEEPING
+Run this block to save all your variables and store useful information about this run in the html file that accompanies this notebook.
+```{r}
+sessionInfo()
+
+setwd(pathToRData)
+save.image(file = paste0(currDate,'_',expName,'allVars.RData'))
+
+```
+
+

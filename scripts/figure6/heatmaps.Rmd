@@ -1,0 +1,203 @@
+---
+title: "[Figure 6] Heatmap of Differentially Expressed Genes"
+output: html_notebook
+---
+
+This code takes the output of tximport_setup.Rmd and deseq.Rmd. It visualizes the output as a heatmap.
+
+# Set up workspace
+
+To ensure that this code is usable across a variety of platforms, the user-provided variables (e.g. the date of the run, the path to data files) are stored in the .csv file "userVars", which should be in the directory containing the directory that holds the .Rmd scripts.
+
+## Import the variables you need
+```{r}
+# import .csv file with user paths and info written out
+userVars <- read.delim("../userVars.csv", stringsAsFactors=FALSE, sep=",")
+
+# print(userVars) # uncomment to include output in notebook to document variables in .html notebook output for this run
+
+# user-determined variables used for generating filenames
+currDate <- userVars[userVars$variable=='currentDate', 'path']
+projDir <- userVars[userVars$variable=='projectDirectory', 'path']
+myAlpha <- userVars[userVars$variable=='myAlpha', 'path']
+
+pathToSetupData <- userVars[userVars$variable=='date_mostRecent_setup', 'path']
+
+# path to DESeq output
+pathToDESeqOutput <- paste0(projDir,'/output/figure6/deseq/',userVars[userVars$variable=='date_mostRecent_setup', 'path'],'/other' )
+
+```
+
+## load needed variables
+```{r}
+# Load setup data
+load( paste0(projDir, 'output/figure6/tximport_setup/', pathToSetupData, "/RData/", pathToSetupData, "_tximport_setup_setupVars.RData") )
+
+# Load deseq data
+load( paste0(pathToDESeqOutput, "/DEGenes_top100.RData") )
+load( paste0(pathToDESeqOutput, "/namesOfDEGenes.RData") )
+
+
+## order samples by PCR integration
+sampleTable_plus <- sampleTable_plus[order(sampleTable_plus$PCR_integration),]
+
+```
+
+
+## Make folders for this
+```{r}
+# name for files etc
+expName <- 'heatmaps'
+
+# make folder to contain experiment output
+
+## for output
+pathToAllProjectDir <- paste0(projDir, 'output/figure6/', expName)
+dir.create(pathToAllProjectDir)
+
+## main folder
+pathToProjectDir <- paste0(projDir, 'output/figure6/', expName,'/', currDate)
+dir.create(pathToProjectDir)
+
+## make folder to contain non-RData output
+pathToProjectOutput <- paste0(pathToProjectDir,'/other')
+dir.create(pathToProjectOutput)
+
+## make folder for RData vars
+pathToRData <- paste0(pathToProjectDir,'/RData')
+dir.create(pathToRData)
+
+
+
+```
+
+## create dataset for plotting
+```{r}
+# make data frame
+myData <- assay(dds_kal_vst_bc)
+
+# make order match sampleTable
+myData <- myData[, match(sampleTable_plus$DESeqAnalysisID, colnames(myData))]
+
+# take transpose because that's required for WGCNA
+plotData <- t(myData)
+
+```
+
+
+# Heatmap: DE Genes
+Feed in batch corrected data: https://support.bioconductor.org/p/99480/
+
+## prepare plotting data
+```{r}
+
+plot_de <- plotData[,which(colnames(plotData) %in% namesOfDEGenes)]
+plot_de_100 <- plotData[,which(colnames(plotData) %in% row.names(deseqOutput_signif_df_100))]
+
+```
+
+## Plot: batch corrected vst-normalized expression data
+```{r}
+
+# load needed libraries
+library(RColorBrewer)
+library(DESeqAid)
+
+# define annotation colors
+annColors <- list(PCR_integration = c(N='#bdbdbd',Y='#636363'))
+
+# plot
+setwd(pathToProjectOutput)
+# the way I did it in older versions
+DE_heatmap(plot_de, 
+           sampleTable_plus, 
+           c('PCR_integration'), 
+           'DESeqAnalysisID', 
+           30,15, 
+           'DE_expression_YlOrRed.pdf', 
+           myColors = colorRampPalette(rev(brewer.pal(n = 7, name ="YlOrRd")))(100), 
+           myAnnotationColors = annColors, 
+           26)
+
+DE_heatmap(plot_de_100, 
+           sampleTable_plus, 
+           c('PCR_integration'), 
+           'DESeqAnalysisID', 
+           30,15, 
+           'DE_expression_top100_YlOrRed.pdf', 
+           myColors = colorRampPalette(rev(brewer.pal(n = 7, name ="YlOrRd")))(100), 
+           myAnnotationColors = annColors, 
+           26)
+
+
+```
+
+## Plot: batch corrected vst-normalized Z-SCORES
+```{r}
+
+# swap out names for LIne IDs
+row.names(plot_de) <- sampleTable_plus[which( row.names(plot_de) %in% sampleTable_plus[,'DESeqAnalysisID'] ), 'Line.x']
+row.names(plot_de_100) <- sampleTable_plus[which( row.names(plot_de_100) %in% sampleTable_plus[,'DESeqAnalysisID'] ), 'Line.x']
+
+# !! temporarily make copy of sampleTable with futz'ed names for Julien to change
+sampleTable_plus_futz <- sampleTable_plus
+sampleTable_plus_futz$Line.x <- as.character(sampleTable_plus_futz$Line.x)
+sampleTable_plus_futz[which(sampleTable_plus_futz$DESeqAnalysisID == 'WT_L3_P26'), 'Line.x'] <- 'WT_L3_P26_NIH511.3'
+sampleTable_plus_futz[which(sampleTable_plus_futz$DESeqAnalysisID == 'WT_L5_P20'), 'Line.x'] <- 'WT_L5_P20_8343.4'
+sampleTable_plus_futz[which(sampleTable_plus_futz$DESeqAnalysisID == 'WT_L5_P21'), 'Line.x'] <- 'WT_L5_P21_8343.5'
+sampleTable_plus_futz$Line.x <- as.factor(sampleTable_plus_futz$Line.x)
+
+
+# create annotations
+  my_pheno_col <- data.frame(sampleTable_plus_futz[,c('PCR_integration')])
+  row.names(my_pheno_col) <- sampleTable_plus_futz[,'Line.x']
+  colnames(my_pheno_col) <- c('PCR_integration')
+  
+# plot pheatmap
+  setwd(pathToProjectOutput)
+  pheatmap(plot_de, 
+           annotation_row = my_pheno_col, 
+           cluster_rows = FALSE, gaps_row = 26, 
+           filename = 'degene_scaled_BuPu_LineNames.pdf', 
+           width = 30, 
+           height = 5, 
+           color = colorRampPalette(rev(brewer.pal(n = 7, name ="BuPu")))(100),
+           scale='column',
+           annotation_colors = annColors)
+
+  pheatmap(plot_de_100, 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 26, 
+         filename = 'degene_scaled_BuPu_100_LineNames_tall.pdf', 
+         width = 30, 
+         height = 12.5, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="BuPu")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+ 
+```
+
+
+# HOUSEKEEPING
+```{r}
+
+sessionInfo()
+setwd(pathToRData)
+save.image(file = paste0(currDate,'_',expName,'_allVars.RData'))
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

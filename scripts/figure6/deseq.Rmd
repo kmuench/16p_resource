@@ -1,0 +1,215 @@
+---
+title: '[Figure 6] Differential Expression between Integration(+) and Integration(-) clones'
+output:
+  html_document:
+    df_print: paged
+---
+
+This code takes the output of tximport_setup.Rmd, submits that gene expression data to DESeq2, and visualizes the output.
+
+
+# Set up workspace
+
+To ensure that this code is usable across a variety of platforms, the user-provided variables (e.g. the date of the run, the path to data files) are stored in the .csv file "userVars", which should be in the directory containing the directory that holds the .Rmd scripts.
+
+## Import the variables you need
+```{r}
+# import .csv file with user paths and info written out
+userVars <- read.delim("../userVars.csv", stringsAsFactors=FALSE, sep=",")
+
+# print(userVars) # uncomment to include output in notebook to document variables in .html notebook output for this run
+
+# user-determined variables used for generating filenames
+currDate <- userVars[userVars$variable=='currentDate', 'path']
+projDir <- userVars[userVars$variable=='projectDirectory', 'path']
+myAlpha <- userVars[userVars$variable=='myAlpha', 'path']
+
+pathToSetupData <- userVars[userVars$variable=='date_mostRecent_setup', 'path']
+pathTo16pGeneList <- userVars[userVars$variable=='pathTo16pGeneList', 'path']
+pathToSFARIgene <- userVars[userVars$variable=='pathToSFARIgene', 'path']
+pathToSexGenes <- userVars[userVars$variable=='pathToSexGenes', 'path']
+
+
+```
+
+## Import needed data
+```{r}
+load( paste0(projDir, 'output/figure6/tximport_setup/', pathToSetupData, "/RData/", pathToSetupData, "_tximport_setup_setupVars.RData") )
+
+```
+
+## Make folders for this
+```{r}
+# name for files etc
+expName <- 'deseq'
+
+# make folder to contain experiment output
+
+## for output
+pathToAllProjectDir <- paste0(projDir, 'output/figure6/', expName)
+dir.create(pathToAllProjectDir)
+
+## main folder
+pathToProjectDir <- paste0(projDir, 'output/figure6/', expName,'/', currDate)
+dir.create(pathToProjectDir)
+
+## make folder to contain non-RData output
+pathToProjectOutput <- paste0(pathToProjectDir,'/other')
+dir.create(pathToProjectOutput)
+
+## make folder for RData vars
+pathToRData <- paste0(pathToProjectDir,'/RData')
+dir.create(pathToRData)
+
+```
+
+
+## load needed packages
+```{r}
+# Import Kristin's useful tools
+library(DESeqAid)
+library(DESeq2)
+```
+
+# Explore data - underlying structure in data that need to be batch corrected?
+
+## Pre-cleaning Data
+
+```{r}
+# direct written outputs to designated project output folder
+setwd(pathToProjectOutput)
+
+# pre-filtering - filtering out empty rows. not at all necessary, but makes later computation faster.
+dds_kal <- dds_kal[ rowSums(counts(dds_kal)) > 1, ]
+
+# relevel - this explicitly tells DESeq to consider samples labeled 'WT' the controls
+dds_kal$Genotype <- relevel(dds_kal$Genotype, ref = 'WT')
+
+# Make a data frame containing the raw Count data stored in the DESeqDataSet
+rawCounts <- data.frame( counts(dds_kal) )
+
+```
+
+
+# Deploy DESeq
+
+## for gene
+```{r}
+# pre-filtering - filtering out empty rows. not at all necessary, but makes later computation faster.
+dds_kal <- dds_kal[ rowSums(counts(dds_kal)) > 1, ]
+
+# relevel - this explicitly tells DESeq to consider samples labeled 'N' the controls
+dds_kal$PCR_integration <- relevel(dds_kal$PCR_integration, ref = 'N')
+
+# DESeq
+dds_deseq <- DESeq(dds_kal)
+
+# direct written outputs to designated project output folder
+setwd(pathToProjectOutput)
+
+# perform DESeq analysis
+deseqOutput <- deseq_contrasts(dds_deseq, myAlpha, c('PCR_integration', 'Y', 'N'), 'INTvCLEAN_gene', currDate, expName, geneList16p)
+
+deseqOutput_df <- data.frame(deseqOutput)
+deseqOutput_signif_df <- deseqOutput_df[which(deseqOutput_df$padj < myAlpha),]
+deseqOutput_signif_df <- deseqOutput_signif_df[order(deseqOutput_signif_df$padj),]
+deseqOutput_signif_df_100 <- deseqOutput_signif_df[c(1:100),]
+
+# only look at 16p genes
+deseqOutput_16p<- subset(deseqOutput_df, row.names(deseqOutput_df) %in% geneList16p[,1] )
+
+print('16p gene report:')
+print(paste0('Number of 16p genes total: ', nrow(deseqOutput_16p)))
+print(paste0('Number of DE 16p genes: ', nrow(deseqOutput_16p[deseqOutput_16p$padj < myAlpha,])))
+
+# save data tables
+setwd(pathToProjectOutput)
+write.table(deseqOutput_signif_df , file = 'DEGenes.txt', quote = FALSE)
+write.table(deseqOutput_signif_df_100, file = 'DEGenes_top100.txt', quote = FALSE)
+save( deseqOutput_signif_df_100, file = 'DEGenes_top100.RData')
+
+# save DE gene names
+write.table(row.names(deseqOutput_signif_df) , file = 'namesOfDEGenes.txt', quote = FALSE, row.names=FALSE, col.names=FALSE)
+namesOfDEGenes <- row.names(deseqOutput_df[which(deseqOutput_df$padj < myAlpha),])
+save(namesOfDEGenes, file = 'namesOfDEGenes.RData')
+
+```
+
+
+## How much does that gene list overlap with putative POU5F1 targets?
+https://bmcgenomics.biomedcentral.com/articles/10.1186/1471-2164-9-269
+Used lists from 12864_2007_1462_MOESM17_ESM.xls 
+
+Summary: 1-5 genes overlap between our DE list and those put forward in paper. Only a small fraction of genes. However, DE list might be too small due to inconsistency in amount of integration (or maybe would change if we used shp_transcript instead of PCR_integration)
+```{r}
+# import target list
+oct4Targ <- read.delim("~/Dropbox/Projects/cnv16p/2017/resourcePaper/phenotype/integrationFig/kallisto/DESeq_20181009/20181012_oct4Targ_compare.csv")
+
+oct4Targ_sharov <- deseqOutput_signif_df[ row.names(deseqOutput_signif_df) %in% oct4Targ[oct4Targ$Sharov == 1,'Gene_Upper'], ]
+oct4Targ_matoba <- deseqOutput_signif_df[ row.names(deseqOutput_signif_df) %in% oct4Targ[oct4Targ$Matoba == 1,'Gene_Upper'], ]
+oct4Targ_loh <- deseqOutput_signif_df[ row.names(deseqOutput_signif_df) %in% oct4Targ[oct4Targ$Loh == 1,'Gene_Upper'], ]
+
+
+print('What Oct4 target genes appear in our DE gene list?')
+print('Sharov N:')
+print(nrow(oct4Targ_sharov))
+print(paste0('Percent of list: ', (nrow(oct4Targ_sharov)/nrow(oct4Targ[oct4Targ$Sharov == 1,])) * 100 ))
+print('Matoba N:')
+print(nrow(oct4Targ_matoba))
+print(paste0('Percent of list: ', (nrow(oct4Targ_matoba)/nrow(oct4Targ[oct4Targ$Matoba == 1,])) * 100 ))
+print('Loh N:')
+print(nrow(oct4Targ_loh))
+print(paste0('Percent of list: ', (nrow(oct4Targ_loh)/nrow(oct4Targ[oct4Targ$Loh == 1,])) * 100 ))
+
+# save results to .csv
+setwd(pathToProjectOutput)
+write.csv(oct4Targ_sharov[which(oct4Targ_sharov$padj < myAlpha),], file = 'Sharov_overlap.csv')
+write.csv(oct4Targ_matoba[which(oct4Targ_matoba$padj < myAlpha),], file = 'Matoba_overlap.csv')
+write.csv(oct4Targ_loh[which(oct4Targ_loh$padj < myAlpha),], file = 'Loh_overlap.csv')
+
+```
+
+
+
+# Visualize data
+
+## Volcano plot of data
+```{r}
+# plot Volcano Plot
+makeVolcanoPlot(deseqOutput_df, 
+                geneList16p[,1], 
+                '16p Region Gene', 
+                paste0(currDate, ' ', expName), 
+                'Log2(Shrunken Fold Change)', 
+                '-Log10(Adjusted P-Value)',
+                currDate,
+                'volcanoPlot')
+
+```
+
+
+
+# HOUSEKEEPING
+```{r}
+
+setwd(pathToProjectOutput)
+sessionInfo()
+save.image(file=paste0(currDate, '_', expName, 'FinalAnalysis.RData'))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

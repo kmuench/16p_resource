@@ -1,0 +1,291 @@
+---
+title: "[Figure 6] Stacked bar plots illustrating integrant quantification"
+output: html_notebook
+---
+
+This code takes the output of tximport_setup.Rmd. It visualizes transcripts aligned to plasmid vs. the genome as stacked bar plots.
+
+
+# Set up workspace
+
+To ensure that this code is usable across a variety of platforms, the user-provided variables (e.g. the date of the run, the path to data files) are stored in the .csv file "userVars", which should be in the directory containing the directory that holds the .Rmd scripts.
+
+## Import the variables you need
+```{r}
+# import .csv file with user paths and info written out
+userVars <- read.delim("../userVars.csv", stringsAsFactors=FALSE, sep=",")
+
+# print(userVars) # uncomment to include output in notebook to document variables in .html notebook output for this run
+
+# user-determined variables used for generating filenames
+currDate <- userVars[userVars$variable=='currentDate', 'path']
+projDir <- userVars[userVars$variable=='projectDirectory', 'path']
+myAlpha <- userVars[userVars$variable=='myAlpha', 'path']
+
+pathToSetupData <- userVars[userVars$variable=='date_mostRecent_setup', 'path']
+
+# path to DESeq output
+pathToDESeqOutput <- paste0(projDir,'/output/figure6/deseq/',userVars[userVars$variable=='date_mostRecent_setup', 'path'],'/other' )
+
+```
+
+## load needed variables
+```{r}
+# Load setup data
+load( paste0(projDir, 'output/figure6/tximport_setup/', pathToSetupData, "/RData/", pathToSetupData, "_tximport_setup_setupVars.RData") )
+
+# Load deseq data
+load( paste0(pathToDESeqOutput, "/DEGenes_top100.RData") )
+load( paste0(pathToDESeqOutput, "/namesOfDEGenes.RData") )
+
+
+## order samples by PCR integration
+sampleTable_plus <- sampleTable_plus[order(sampleTable_plus$PCR_integration),]
+
+# Create plotting data
+
+## calculate size factors
+dds_kal <- estimateSizeFactors(dds_kal)
+
+## create data frame
+normalized_counts <- counts(dds_kal, normalized=TRUE)
+myData <- data.frame(normalized_counts)
+
+```
+
+
+## Make folders for this
+```{r}
+# name for files etc
+expName <- 'barPlots'
+
+# make folder to contain experiment output
+
+## for output
+pathToAllProjectDir <- paste0(projDir, 'output/figure6/', expName)
+dir.create(pathToAllProjectDir)
+
+## main folder
+pathToProjectDir <- paste0(projDir, 'output/figure6/', expName,'/', currDate)
+dir.create(pathToProjectDir)
+
+## make folder to contain non-RData output
+pathToProjectOutput <- paste0(pathToProjectDir,'/other')
+dir.create(pathToProjectOutput)
+
+## make folder for RData vars
+pathToRData <- paste0(pathToProjectDir,'/RData')
+dir.create(pathToRData)
+
+
+```
+
+
+# Stacked barplot of TPM
+
+## Genes to study
+```{r}
+
+transHugoSource <- read.csv("~/Dropbox/Projects/cnv16p/2017/Integration/clonalIntegrationData/20180929_transcriptHugoSource.csv")
+
+geneHugoSource <- data.frame( gene_id = c('KLF4', 'plas_hsk_KLF4',
+                                          'LIN28A', 'plas_hul_LIN28',
+                                          'MYCL', 'plas_hul',
+                                          'POU5F1', 'plas_shp',
+                                          'SOX2', 'plas_hsk'),
+                              hugo = c('KLF4','KLF4',
+                                       'LIN28A','LIN28A',
+                                       'MYCL','MYCL',
+                                       'POU5F1','POU5F1',
+                                       'SOX2','SOX2'),
+                              source = c('genomic', 'plasmid',
+                                          'genomic', 'plasmid',
+                                          'genomic', 'plasmid',
+                                          'genomic', 'plasmid',
+                                          'genomic', 'plasmid') )
+
+```
+
+## Duplicate the plasmid rows in data frame
+This accounts for the fact that the plasmid transcripts are polycistronic and therefore the count for the plasmid is both a "count" for Gene A and Gene B.
+
+```{r}
+# create duplicate rows
+myData["plas_hsk_KLF4",] <- myData["plas_hsk",]
+myData["plas_hul_LIN28",] <- myData["plas_hul",]
+
+```
+
+
+## Create dataset
+Note that since vst is already scaled it is not useful to further scale the data, e.g. using asinh.
+```{r}
+# pull out genes you'd like to plot
+myData_plotGenes_all <- myData[row.names(myData) %in% geneHugoSource$gene_id,]
+
+# pull out the samples (Int +) you'd like to plot
+myData_plotGenes <- myData_plotGenes_all[, names(myData_plotGenes_all) %in% intClones]
+
+# pull out negative samples to plot
+myData_plotGenes_clean <- myData_plotGenes_all[, names(myData_plotGenes_all) %in% cleanClones]
+
+# asinh scale entries
+myData_plotGenes_asinh <- asinh(myData_plotGenes)
+myData_plotGenes_asinh_clean <- asinh(myData_plotGenes_clean)
+
+
+# add the information about source and hugo names
+myData_plotGenes <- merge(myData_plotGenes, geneHugoSource, by.x='row.names', by.y='gene_id')
+myData_plotGenes_clean <- merge(myData_plotGenes_clean, geneHugoSource, by.x='row.names', by.y='gene_id')
+
+myData_plotGenes_asinh <- merge(myData_plotGenes_asinh, geneHugoSource, by.x='row.names', by.y='gene_id')
+myData_plotGenes_asinh_clean <- merge(myData_plotGenes_asinh_clean, geneHugoSource, by.x='row.names', by.y='gene_id')
+
+```
+
+
+
+# Percent graph - what % of total transcripts is from plasmid?
+
+## Function
+```{r}
+
+regBarPlot <- function(myData_plotGenes, title, myYLab){
+  library(reshape2)
+  
+  # melt so in two-col format
+  myData_melt <- melt(myData_plotGenes)
+  myData_melt$hugo <- as.factor(myData_melt$hugo)
+  myData_melt$source <- ordered(myData_melt$source, levels=c('plasmid','genomic') )
+  
+  # aggregate duplicate genes together, and aggregate replicates together
+  expr <- aggregate(myData_melt$value ~ myData_melt$hugo * myData_melt$source, FUN = mean)
+  colnames(expr) <- c('hugo', 'source', 'value')
+  
+  # aggregate to come up with gene totals
+  expr_geneSum <- aggregate(expr$value ~ expr$hugo , FUN = sum)
+  colnames(expr_geneSum) <- c('hugo', 'meanSum')
+  genePercents <- merge(expr_geneSum, expr[expr$source == 'plasmid',], by='hugo')
+  genePercents <- transform(genePercents, percent = (value / meanSum ) * 100 )
+  
+  genePercents$hugo <- as.factor(genePercents$hugo)
+  
+  # Stacked bar plot
+  p <- ggplot(genePercents, aes(y=percent, x=hugo)) + 
+    geom_bar( stat="identity", fill = '#66C2A5') +
+    ggtitle(title) +
+    ylab(myYLab) +
+    xlab('Reprogramming Factor') +
+    theme(axis.text.x = element_text(face="bold", size=14),
+          axis.text.y = element_text(face="bold", size=14)) +
+    theme_bw()
+  
+  print(p)
+  return(p)
+}
+
+```
+
+
+## plot
+```{r}
+
+g <- regBarPlot(myData_plotGenes, 'No rescaling, Int+ Only', '% of Total Normalied Count aligned to plasmid gene')
+regBarPlot(myData_plotGenes_clean, 'No rescaling, Int- Only', '% of Total Normalied Count aligned to plasmid gene')
+
+
+regBarPlot(myData_plotGenes_asinh, 'Asinh-scaled, Int+ Only', '% of Total Normalied Count aligned to plasmid gene')
+regBarPlot(myData_plotGenes_asinh_clean, 'Asinh-scaled, Int- Only', '% of Total Normalied Count aligned to plasmid gene')
+
+# save images
+setwd(pathToProjectOutput)
+ggsave(g, file = paste0(currDate, 'IntPos_sfNorm_proportion_onlyPos.svg') , width = 5, height = 5)
+
+```
+
+
+
+# Stacked bar plot of Integration+ and Integration- clones
+
+## Function 
+```{r}
+
+stackPlot2 <- function(myData_plotGenes, title, myYLab, intClones){
+  # library
+  library(ggplot2)
+  library(reshape2)
+
+  # melt so in two-col format
+  myData_melt <- melt(myData_plotGenes)
+  myData_melt$hugo <- as.factor(myData_melt$hugo)
+  myData_melt$source <- as.factor(ordered(myData_melt$source, levels=c('plasmid','genomic') ))
+  myData_melt$clone <- 'Int-'
+  myData_melt[which(myData_melt$variable %in% intClones),'clone'] <- 'Int+'
+  myData_melt$clone <- as.factor(myData_melt$clone)
+  
+  # aggregate duplicate genes together, and aggregate replicates together
+  expr <- aggregate(myData_melt$value ~ myData_melt$hugo * myData_melt$source * myData_melt$clone, FUN = mean)
+  
+  colnames(expr) <- c('hugo', 'source', 'clone', 'value')
+  
+  # Stacked bar plot
+  p <- ggplot(expr, aes(fill=source, y=value, x=clone)) + 
+    geom_bar( stat="identity", position="stack") +
+    facet_grid(~ hugo) +
+    ggtitle(title) +
+    ylab(myYLab) +
+    xlab('Reprogramming Factor') +
+    scale_fill_manual(values=c('#66C2A5','#631675')) + 
+    theme(axis.text.x = element_text(face="bold", size=14),
+          axis.text.y = element_text(face="bold", size=14)) +
+    theme_bw() +
+    theme(legend.position="none")
+  
+  #+theme(legend.position="none")
+  
+  print(p)
+  
+  return(p)
+
+}
+
+
+```
+
+
+## Deploy
+```{r}
+
+myData_plotGenes_all <- merge(myData_plotGenes_all, geneHugoSource, by.x='row.names', by.y='gene_id')
+
+stack2 <- stackPlot2(myData_plotGenes_all, 'No rescaling, Int- only, Expression', 'Size Factor Normalized Count', intClones)
+
+setwd(pathToProjectOutput)
+ggsave(stack2, file = 'stackPlot_IntPosAndNeg.svg', width = 5, height = 5)
+
+
+```
+
+
+# HOUSEKEEPING
+```{r}
+
+sessionInfo()
+setwd(pathToRData)
+save.image(file = paste0(currDate,'_',expName,'_allVars.RData'))
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

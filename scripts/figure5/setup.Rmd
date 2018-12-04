@@ -6,6 +6,7 @@ output: html_notebook
 This code prepares variables for differential expression analysis (deseq.Rmd), and to explore the data via Principal Components Analysis clustering.
 
 # Set up Workspace
+
 To ensure that this code is usable across a variety of platforms, the user-provided variables (e.g. the date of the run, the path to data files) are stored in the .csv file "userVars", which should be in the directory containing the directory that holds the .Rmd scripts.
 
 ## Import the variables you need
@@ -29,7 +30,6 @@ pathTo16pGeneList <- userVars[userVars$variable=='pathTo16pGeneList', 'path']
 
 ## Make folders for this
 ```{r}
-
 # name for files etc
 expName <- 'setup'
 
@@ -100,7 +100,6 @@ sampleTable[,-c(1,2)] <- lapply( sampleTable[,-c(1,2)], factor )
 
 ```
 
-
 ## Import 16p gene list
 ```{r}
 # Import 16p Gene List
@@ -111,7 +110,6 @@ load(pathTo16pGeneList) # file under kristinmuench/geneList_16p112.RData
 # Create dataset
 
 ## Import of Raw Count Data
-
 ```{r}
 # install needed library
 library(DESeq2)
@@ -122,7 +120,6 @@ myData <- DESeqDataSetFromHTSeqCount(sampleTable = sampleTable,
                                      design = ~ Sex + Genotype + GrowBatch ) # This design will change later in code
 
 ```
-
 
 ## Pre-cleaning Data
 ```{r}
@@ -146,8 +143,6 @@ myData$Genotype <- relevel(myData$Genotype, ref = 'WT')
 rawCounts <- data.frame( counts(myData) )
 
 ```
-
-
 
 # Batch Correction
 
@@ -290,7 +285,6 @@ sampSimilarityHeatmap(myData_vst_df, sampleTable_collapsed, c('Genotype', 'Subje
 
 
 ## VST normalized, batch correction (~Sex + Genotype + GrowBatch + SVs)
-
 
 ### PCA 
 ```{r}

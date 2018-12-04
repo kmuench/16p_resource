@@ -1,0 +1,307 @@
+---
+title: "[Figure 6] Perform GSEA on output from DESeq code"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+This script takes in the output of deseq.Rmd and tximport_setup.Rmd to create a list of genes ranked by sign of shrunken fold change and p-value and perform GSEA to detect gene lists enriched at the extremes of this list.
+
+Once GSEA is performed, you can generate a figure using EnrichmentMap. Here is an EnrichmentMap tutorial once you have your ranked lists: https://enrichmentmap.readthedocs.io/en/latest/QuickTour.html
+
+In general, this pipeline module is based on:
+https://baderlab.github.io/Cytoscape_workflows/EnrichmentMapPipeline/supplemental_protocol1_rnaseq.html
+
+Notes on how I did GSEA:
+
+1. Use this code to generate and save two files:
+Gene ranked by a combination of p-value and sign of fold change
+Pathway definition file
+
+2. Load into GSEA
+
+3. Click preranked analysis
+
+Help on doing preranked analysis here:
+http://software.broadinstitute.org/gsea/doc/GSEAUserGuideFrame.html?_GSEAPreranked_Page
+
+How to see/analyze results: https://software.broadinstitute.org/gsea/doc/GSEAUserGuideFrame.html
+(that also explains what you see when you click on the index)
+
+4. Click leading edge analysis, pick folder from application cache, click Load GSEA results, sort.
+FDR cutoff (q value) of 0.25 suggested appropriate by GSEA: https://software.broadinstitute.org/gsea/doc/GSEAUserGuideFrame.html
+
+
+# Prepare workspace
+
+## set heap
+```{r}
+# set max heap size of rJava - default is 512 which is easy to overwhelm
+options(java.parameters = "-Xmx12000m")
+```
+
+## Import the things you need
+```{r}
+
+# import .csv file with user paths and info written out
+userVars <- read.delim("../userVars.csv", stringsAsFactors=FALSE, sep=",")
+
+# print(userVars) # uncomment to print for documentation which paths you are using
+
+# user-determined variables used for generating filenames
+currDate <- userVars[userVars$variable=='currentDate', 'path']
+projDir <- userVars[userVars$variable=='projectDirectory', 'path']
+
+# path to output of tximport_setup.Rmd
+pathToSetupData <- userVars[userVars$variable=='date_mostRecent_setup', 'path']
+
+# path to DESeq output
+pathToDESeqOutput <- paste0(projDir,'/output/figure6/deseq/',userVars[userVars$variable=='date_mostRecent_setup', 'path'],'/other' )
+
+
+
+```
+
+
+# Load required packages and variables
+```{r}
+# Load edgeR
+knitr::opts_knit$set(cache = TRUE)
+
+tryCatch(expr = { library("edgeR")}, 
+         error = function(e) { 
+           source("https://bioconductor.org/biocLite.R")
+           biocLite("edgeR")}, 
+         finally = library("edgeR"))
+
+working_dir <- paste(getwd(),"data",sep="/")
+
+#The field in the class definition file that defines the classes of the data.
+data_classes <- "SUBTYPE"
+
+# Load DESeqOutput - RData
+load(paste0(projDir, "output/figure6/deseq/", pathToSetupData, "/RData/", pathToSetupData, "_deseq_deseqOutput_INTvCLEAN_gene.RData") )
+
+# Load other variables
+load(paste0(projDir, "output/figure6/tximport_setup/", pathToSetupData, "/RData/", pathToSetupData , "_tximport_setup_setupVars.RData") )
+
+```
+
+
+## Make folders for output
+```{r}
+
+# name for files etc
+expName <- 'GSEA'
+
+# make folder to contain experiment output
+
+## for output
+pathToAllProjectDir <- paste0(projDir, 'output/figure6/', expName)
+dir.create(pathToAllProjectDir)
+
+## main folder
+pathToProjectDir <- paste0(projDir, 'output/figure6/', expName,'/', currDate)
+dir.create(pathToProjectDir)
+
+## make folder to contain non-RData output
+pathToProjectOutput <- paste0(pathToProjectDir,'/other')
+dir.create(pathToProjectOutput)
+
+## make folder for RData vars
+pathToRData <- paste0(pathToProjectDir,'/RData')
+dir.create(pathToRData)
+
+```
+
+
+
+## Create GSEA input list
+```{r}
+
+#create ranked list of DESeq output
+ranks_RNAseq <- sign(myResults_df$log2FoldChange) * -log10(myResults_df$padj)
+
+#gene names from the TCGA set contain gene name and entrez gene ids separated by ‘|’
+# for all subsequent enrichment analysis we need to have just one id.  Separate the names 
+# into their two ids.
+genenames <- unlist(row.names(myResults_df))
+
+# make ranks file
+ranks_RNAseq <- cbind(genenames, ranks_RNAseq)
+colnames(ranks_RNAseq) <- c("GeneName","rank")
+
+#sort ranks in decreasing order
+ranks_RNAseq <- ranks_RNAseq[order(as.numeric(ranks_RNAseq[,2]),decreasing = TRUE),]
+
+# remove NAs
+ranks_RNAseq <- ranks_RNAseq[ which(!(is.na(ranks_RNAseq[,2]))) ,]
+
+# write table of ranks
+setwd(pathToProjectOutput)
+write.table(ranks_RNAseq, paste(pathToProjectOutput, paste0("DE_ranks_",expName,".rnk"),sep="/"), 
+            col.name = TRUE, sep="\t", row.names = FALSE, quote = FALSE)
+
+```
+
+
+## download latest and greatest pathway definition file
+```{r}
+#install required R and bioconductor packages
+tryCatch(expr = { library("RCurl")}, 
+         error = function(e) {  install.packages("RCurl")}, 
+         finally = library("RCurl"))
+
+# set wd
+setwd(pathToProjectOutput)
+
+# url with current file
+gmt_url = "http://download.baderlab.org/EM_Genesets/current_release/Human/symbol/"
+
+#list all the files on the server
+filenames = getURL(gmt_url)
+tc = textConnection(filenames)
+contents = readLines(tc)
+close(tc)
+
+#get the gmt that has all the pathways and does not include terms inferred from electronic annotations(IEA)
+#start with gmt file that has pathways only
+rx = gregexpr("(?<=<a href=\")(.*.GOBP_AllPathways_no_GO_iea.*.)(.gmt)(?=\">)",
+  contents, perl = TRUE)
+gmt_file = unlist(regmatches(contents, rx))
+
+dest_gmt_file <- paste(pathToProjectOutput, paste("Supplementary_Table3_", gmt_file, sep="") ,sep="/")
+
+download.file(
+    paste(gmt_url,gmt_file,sep=""),
+    destfile=dest_gmt_file
+)
+
+```
+
+# Create paths needed for GSEA run
+```{r}
+# establish new paths
+pathToRanks <- paste0(pathToProjectOutput, '/DE_ranks_GSEA.rnk')
+pathToExpr <- paste0(pathToProjectOutput, '/EM_expressionFile_RNASeq.txt')
+pathToGMT <- paste(pathToProjectOutput, paste("Supplementary_Table3_", gmt_file, sep="") ,sep="/")
+
+# create params variable 
+params <- data.frame(gsea_jar =  userVars[userVars$variable=='pathToGSEAjar', 'path'],
+                     working_dir = pathToProjectOutput,
+                     analysis_name = 'run_repeat_GSEA',
+                     run_gsea = pathToProjectOutput,
+                     rnk_file = pathToRanks,
+                     expression_file = pathToExpr,
+                     pval_thresh = 0.05,
+                     fdr_thresh = 0.25)
+
+```
+
+
+# Load required libraries
+```{r}
+#install required R and bioconductor packages
+tryCatch(expr = { library("RCurl")}, 
+         error = function(e) {  install.packages("RCurl")}, 
+         finally = library("RCurl"))
+
+#use library
+tryCatch(expr = { library("limma")}, 
+         error = function(e) { source("https://bioconductor.org/biocLite.R")
+           biocLite("limma")}, 
+         finally = library("limma"))
+tryCatch(expr = { library("Biobase")}, 
+         error = function(e) { source("https://bioconductor.org/biocLite.R")
+           biocLite("Biobase")}, 
+         finally = library("Biobase"))
+tryCatch(expr = { library("ggplot2")}, 
+         error = function(e) { install.packages("ggplot2")}, 
+         finally = library("ggplot2"))
+
+#For creating json and communicating with cytoscape
+tryCatch(expr = { library("httr")}, 
+         error = function(e) { install.packages("httr")}, 
+         finally = library("httr"))
+tryCatch(expr = { library("RJSONIO")}, 
+         error = function(e) { install.packages("RJSONIO")}, 
+         finally = library("RJSONIO"))
+
+```
+
+# Configure the configurable parameters
+```{r}
+#path to GSEA jar 
+# In order to run GSEA automatically you need to speciry the path to the gsea jar file.
+gsea_jar <- params$gsea_jar
+
+#Gsea takes a long time to run.  If you have already run GSEA manually or previously there is no need to re-run GSEA.  Make sure the 
+# gsea results are in the current directory and the notebook will be able to find them and use them.
+run_gsea = params$run_gsea
+
+#navigate to the directory where you put the downloaded protocol files.
+working_dir <- params$working_dir
+
+# leave blank if you want the notebook to discover the gsea directory for itself
+#gsea_directory = paste(working_dir,"Mesen_vs_Immuno.GseaPreranked.1497635459262",sep="/") 
+gsea_directory = params$gsea_directory
+
+analysis_name <- params$analysis_name
+rnk_file <- params$rnk_file
+expression_file <- params$expression_file
+
+
+```
+
+
+# RUN GSEA
+Note: HAVE TO RUN JAVA 8. In Terminal, type java -version and make sure that says Java 8. If not, uninstall and re-install Java.
+```{r}
+
+for (i in 1:3) {
+  print(paste0('Run ', i,  'starting...'))
+  command <- paste("java  -Xmx12G -cp", gsea_jar,  
+                   "xtools.gsea.GseaPreranked -gmx", 
+                   dest_gmt_file, "-rnk" ,file.path(rnk_file), 
+                   "-collapse false -nperm 5000 -permute gene_set -scoring_scheme weighted -rpt_label ",
+                   analysis_name,
+                   paste0("  -num 100 -plot_top_x 20 -rnd_seed ", substr(as.numeric(Sys.time()),6,10) , " -set_max 200 -set_min 15 -zip_report false -out" ,
+                   working_dir, 
+                   paste0("-gui false > gsea_output_", i, ".txt") ) ,sep=" ")
+  system(command)
+}
+
+
+```
+
+# Get name of output directory
+```{r}
+if(gsea_directory == ""){
+  gsea_directories <- list.files(path = working_dir, pattern = "\\.GseaPreranked")
+
+  #get the details on the files
+  details = file.info(file.path(getwd(),working_dir,gsea_directories))
+  #order according to newest to oldest
+  details = details[with(details, order(as.POSIXct(mtime),decreasing = TRUE)), ]
+
+  #use the newest file:
+  gsea_output_dir <- row.names(details)[1]
+
+} else {
+  gsea_output_dir <- gsea_directory
+}
+
+```
+
+
+# HOUSEKEEPING
+```{r}
+
+sessionInfo()
+setwd(pathToProjectOutput)
+save.image(file = paste0(currDate,'_',expName,'_allVars.RData'))
+
+```
+
+
+

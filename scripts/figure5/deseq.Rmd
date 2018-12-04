@@ -10,6 +10,9 @@ output:
 This code takes the output of setup.Rmd, submits that gene expression data to DESeq2, and visualizes the output.
 
 # Set up workspace
+
+To ensure that this code is usable across a variety of platforms, the user-provided variables (e.g. the date of the run, the path to data files) are stored in the .csv file "userVars", which should be in the directory containing the directory that holds the .Rmd scripts.
+
 ## Import the variables you need
 ```{r}
 # import .csv file with user paths and info written out

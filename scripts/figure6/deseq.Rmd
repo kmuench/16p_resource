@@ -126,9 +126,12 @@ print(paste0('Number of DE 16p genes: ', nrow(deseqOutput_16p[deseqOutput_16p$pa
 setwd(pathToProjectOutput)
 write.table(deseqOutput_signif_df , file = 'DEGenes.txt', quote = FALSE)
 write.table(deseqOutput_signif_df_100, file = 'DEGenes_top100.txt', quote = FALSE)
+
+setwd(pathToRData)
 save( deseqOutput_signif_df_100, file = 'DEGenes_top100.RData')
 
 # save DE gene names
+setwd(pathToRData)
 write.table(row.names(deseqOutput_signif_df) , file = 'namesOfDEGenes.txt', quote = FALSE, row.names=FALSE, col.names=FALSE)
 namesOfDEGenes <- row.names(deseqOutput_df[which(deseqOutput_df$padj < myAlpha),])
 save(namesOfDEGenes, file = 'namesOfDEGenes.RData')
@@ -192,7 +195,7 @@ makeVolcanoPlot(deseqOutput_df,
 # HOUSEKEEPING
 ```{r}
 
-setwd(pathToProjectOutput)
+setwd(pathToRData)
 sessionInfo()
 save.image(file=paste0(currDate, '_', expName, 'FinalAnalysis.RData'))
 

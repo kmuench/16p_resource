@@ -2,7 +2,7 @@
 # star_submitter_template.sh
 # By Kristin Muench
 # 2018.02.11
-# This script was written in part by John Hanks of the SCGPM cluster. Thanks John!
+# John Hanks of the SCGPM cluster helped me write this. Thanks John!
 #
 # This script will submit a job for each file in a list of files.
 # It takes one argument, a directory in the current directory, from

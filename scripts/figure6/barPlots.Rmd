@@ -25,7 +25,7 @@ myAlpha <- userVars[userVars$variable=='myAlpha', 'path']
 pathToSetupData <- userVars[userVars$variable=='date_mostRecent_setup', 'path']
 
 # path to DESeq output
-pathToDESeqOutput <- paste0(projDir,'/output/figure6/deseq/',userVars[userVars$variable=='date_mostRecent_setup', 'path'],'/other' )
+pathToDESeqOutput <- paste0(projDir,'output/figure6/deseq/',userVars[userVars$variable=='date_mostRecent_setup', 'path'],'/RData' )
 
 ```
 
@@ -110,6 +110,7 @@ geneHugoSource <- data.frame( gene_id = c('KLF4', 'plas_hsk_KLF4',
 This accounts for the fact that the plasmid transcripts are polycistronic and therefore the count for the plasmid is both a "count" for Gene A and Gene B.
 
 ```{r}
+
 # create duplicate rows
 myData["plas_hsk_KLF4",] <- myData["plas_hsk",]
 myData["plas_hul_LIN28",] <- myData["plas_hul",]

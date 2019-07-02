@@ -63,8 +63,10 @@ dir.create(pathToRData)
 
 ## Import 16p gene list
 ```{r}
+
 # Import 16p Gene List
-load(pathTo16pGeneList) # file under kristinmuench/geneList_16p112.RData
+load(pathTo16pGeneList) 
+
 ```
 
 ## Import of metadata
@@ -166,6 +168,49 @@ dds_kal_tpm <- DESeqDataSetFromTximport(txi.kallisto.tpm, sampleTable_plus, ~PCR
 dds_kal_vst <- vst(dds_kal)
 
 ```
+
+
+## Visualization of 16p11.2 abundance ("Christmas Tree Plot")
+```{r}
+# extract count data
+vst_counts <- assay(dds_kal_vst)
+vst_counts_16p <- vst_counts[which(row.names(vst_counts) %in% geneList16p[,1]), ]
+metadata <- data.frame(metadata) # make sure metadata is a data frame
+
+# Manipulate data table to add in factors needed for plotting
+library(reshape2)
+vst_counts_melt <- melt(vst_counts)
+vst_counts_melt$Genotype <- metadata[match(vst_counts_melt$Var2, metadata$DESeqAnalysisID), 'Genotype']
+colnames(vst_counts_melt) <- c('Gene', 'ID', 'value', 'Genotype')
+
+library(dplyr)
+vst_plot <- vst_counts_melt %>% group_by(Genotype,Gene) %>% summarize(myMean = mean(value)) 
+vst_plot_2 <- dcast(vst_plot, Gene ~ Genotype)
+vst_plot_2$gene16p <- ""
+vst_plot_2$gene16p[which(vst_plot_2$Gene %in% geneList16p[,1])] <- 'TRUE'
+vst_plot_2$gene16p <- factor(vst_plot_2$gene16p, levels = c("TRUE", ""))
+
+# plot
+library(ggplot2)
+library(ggrepel)
+ggplot(vst_plot_2, aes(x=WT, y=DEL, label = gene16p) ) + 
+  geom_point(color = ifelse(!(vst_plot_2$gene16p == ""), "red", "grey50")) + theme_minimal() +
+  geom_text_repel()
+
+p <- ggplot() + 
+  geom_point(data = vst_plot_2, aes(x=WT, y=DEL), color = "grey50") + 
+  geom_point(data = vst_plot_2[which(vst_plot_2$Gene %in% geneList16p[,1]), ], aes(x=WT, y=DEL), color = "#BD4932") + 
+  geom_abline(
+      intercept=0,
+      slope=1
+    ) +
+  theme_minimal() +
+  geom_text_repel(data=vst_plot_2[which(vst_plot_2$Gene %in% geneList16p[,1]), ], aes(x=WT, y=DEL, label=Gene),
+                    fontface="bold", color="#BD4932", force = 10)
+
+```
+
+
 
 
 ## (normalization, batch correction, gene-based) ("dds_kal_vst_bc") - for WCGNA, "after" PCA plots

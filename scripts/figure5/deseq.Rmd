@@ -23,13 +23,23 @@ userVars <- read.delim("../userVars.csv", stringsAsFactors=FALSE, sep=",")
 # user-determined variables used for generating filenames
 currDate <- userVars[userVars$variable=='currentDate', 'path']
 projDir <- userVars[userVars$variable=='projectDirectory', 'path']
-myAlpha <- userVars[userVars$variable=='myAlpha', 'path']
+myAlpha <- as.numeric(userVars[userVars$variable=='myAlpha', 'path'])
 
 pathToSetupData <- userVars[userVars$variable=='date_mostRecent_setup', 'path']
 pathTo16pGeneList <- userVars[userVars$variable=='pathTo16pGeneList', 'path']
 pathToSFARIgene <- userVars[userVars$variable=='pathToSFARIgene', 'path']
 pathToSexGenes <- userVars[userVars$variable=='pathToSexGenes', 'path']
 
+```
+
+
+# Load needed variables
+```{r}
+load( paste0(projDir, 'output/figure5/setup/', pathToSetupData, "/RData/", pathToSetupData, "_setup_DESeqWorkspace.RData") )
+
+load(pathTo16pGeneList)
+
+sexGenes <- read.delim(pathToSexGenes, sep=",")
 ```
 
 ## Make folders for this
@@ -55,15 +65,6 @@ dir.create(pathToProjectOutput)
 pathToRData <- paste0(pathToProjectDir,'/RData')
 dir.create(pathToRData)
 
-```
-
-# Load needed variables
-```{r}
-load( paste0(projDir, 'output/figure5/setup/', pathToSetupData, "/RData/", pathToSetupData, "_setup_DESeqWorkspace.RData") )
-
-load(pathTo16pGeneList)
-
-sexGenes <- read.delim(pathToSexGenes, sep=",")
 ```
 
 
@@ -113,6 +114,9 @@ deseqOutput_sex<- subset(deseqOutput_df, row.names(deseqOutput_df) %in% sexGenes
 print('Sex gene report:')
 print(paste0('Number of Sex genes, total, in input list: ', nrow(deseqOutput_sex)))
 print(paste0('Number of DE Sex genes: ', nrow(deseqOutput_sex[deseqOutput_sex$padj < myAlpha,])))
+
+# save expression data if you need it
+myData_vst_bc_exprs <- assay(myData_vst_bc)
 
 ```
 
@@ -220,10 +224,112 @@ genes_annot <- genes_annot[order(genes_annot$padj, decreasing=FALSE),]
 setwd(pathToProjectOutput)
 write.table(genes_annot, paste0(currDate, '_deseqOutput_plusSFARI.csv'), quote=FALSE)
 write.table(genes_annot_onlyRisk, paste0(currDate, '_deseqOutput_plusSFARI_sfariRiskOnly.csv'), quote=FALSE)
+```
 
+
+## Visualization of 16p11.2 abundance ("Christmas Tree Plot")
+```{r}
+
+# identify significantly DE DESeq Output Genes
+deseqOutput_16p_sig <- deseqOutput_16p[which(deseqOutput_16p$padj < 0.05), ]
+
+# Manipulate data table to add in factors needed for plotting
+library(reshape2)
+plotData_melt <- melt(plotData)
+plotData_melt$Genotype <- sampleTable_collapsed[match(plotData_melt$Var2, sampleTable_collapsed$Line), 'Genotype']
+colnames(plotData_melt) <- c('Gene', 'ID', 'value', 'Genotype')
+
+library(dplyr)
+plotData_plot <- plotData_melt %>% group_by(Genotype,Gene) %>% summarize(myMean = mean(value)) 
+plotData_plot_2 <- dcast(plotData_plot, Gene ~ Genotype)
+plotData_plot_2$gene16p <- ""
+plotData_plot_2$gene16p[which(plotData_plot_2$Gene %in% geneList16p[,1])] <- 'TRUE'
+plotData_plot_2$gene16p <- factor(plotData_plot_2$gene16p, levels = c("TRUE", ""))
+
+# plot
+library(ggplot2)
+library(ggrepel)
+ggplot(plotData_plot_2, aes(x=WT, y=DEL, label = gene16p) ) + 
+  geom_point(color = ifelse(!(plotData_plot_2$gene16p == ""), "red", "grey50")) + theme_minimal() +
+  geom_text_repel()
+
+genes16p_de_data <- plotData_plot_2[which(plotData_plot_2$Gene %in% row.names(deseqOutput_16p_sig)), ]
+genes16p_notDE_data <- plotData_plot_2[which(plotData_plot_2$Gene %in% geneList16p[,1] & !(plotData_plot_2$Gene %in% row.names(deseqOutput_16p_sig)) ), ]
+
+p <- ggplot() + 
+  geom_point(data = plotData_plot_2, aes(x=WT, y=DEL), color = "#BAB0AC") + 
+  geom_point(data = genes16p_notDE_data, aes(x=WT, y=DEL), color = "#F28E2B") + 
+  geom_point(data = genes16p_de_data, aes(x=WT, y=DEL), color = "#E15759") + 
+  geom_abline(
+      intercept=0,
+      slope=1
+    ) +
+  theme_minimal() +
+  geom_label_repel(data=genes16p_notDE_data, aes(x=WT, y=DEL, label=Gene), fontface="bold", color="#F28E2B", force = 10, segment.size = 0.2, direction = "x", segment.color = "grey50", nudge_y = 16 - subset(genes16p_notDE_data, WT < 9)$WT) +
+  geom_label_repel(data=genes16p_de_data, aes(x=WT, y=DEL, label=Gene), fontface="bold", color="#E15759", force = 20, segment.size = 0.2, direction = "y", segment.color = "grey50", nudge_x = 15 - subset(genes16p_de_data, WT < 10)$WT)
+
+setwd('~/Desktop')
+ggsave('xmasTreePlot_subsetGoodClones_vst_bc.pdf', p, device = 'pdf', height=20, width=25, unit = 'cm')
 
 ```
 
+
+
+# 2019.06.05 // Quantified measure of extreme expression for Aditya
+```{r}
+
+# Integration severity across all DE genes genes
+
+## prepare data frame of just DE genes
+just_de <- assay(myData_vst_bc)
+just_de <- just_de[row.names(just_de) %in% row.names(deseqOutput_signif_df),] # MAKE SURE SIGNIF DE LIST HAS SOX13 LIKE IT SHOULD
+
+probeMeans <- apply( just_de, 1, mean ) 
+probeSd <- apply( just_de, 1, sd ) 
+
+## calculate z-scores
+zScores <- sweep(sweep(just_de, 1, probeMeans), 1, probeSd, FUN='/')
+
+## which are down in DEL? (flip these signs)
+downInDEL <- row.names(deseqOutput_signif_df[which(deseqOutput_signif_df$log2FoldChange < 0),])
+zScores[which(row.names(zScores) %in% downInDEL),] <- zScores[which(row.names(zScores) %in% downInDEL),]*-1
+
+## calculate expression extremity
+sample_zScore_sum <- data.frame(colSums(zScores))
+sample_zScore_sum$Genotype
+sample_zScore_sum$Genotype <- sampleTable_collapsed[match( row.names(sample_zScore_sum),
+                                                         row.names(sampleTable_collapsed)),'Genotype']
+
+setwd('~/Desktop')
+write.csv(sample_zScore_sum, 'intNeg_WildTypeNessScore.csv')
+
+```
+
+## that but with just 16p genes
+```{r}
+
+# Integration severity across all DE genes genes
+
+## prepare data frame of just DE genes
+just_16p <- assay(myData_vst_bc)
+just_16p <- just_16p[row.names(just_16p) %in% geneList16p[,1],] # MAKE SURE SIGNIF DE LIST HAS SOX13 LIKE IT SHOULD
+
+probeMeans_16p <- apply( just_16p, 1, mean ) 
+probeSd_16p <- apply( just_16p, 1, sd ) 
+
+## calculate z-scores
+zScores_16p <- sweep(sweep(just_16p, 1, probeMeans_16p), 1, probeSd_16p, FUN='/')
+
+## calculate expression extremity
+sample_zScore_sum_16p <- data.frame(colSums(zScores_16p))
+sample_zScore_sum_16p$Genotype
+sample_zScore_sum_16p$Genotype <- sampleTable_collapsed[match( row.names(sample_zScore_sum_16p),
+                                                         row.names(sampleTable_collapsed)),'Genotype']
+
+setwd('~/Desktop')
+write.csv(sample_zScore_sum_16p, 'intNeg_WildTypeNessScore_16p.csv')
+
+```
 
 # HOUSEKEEPING
 Run this block to save all your variables and store useful information about this run in the html file that accompanies this notebook.

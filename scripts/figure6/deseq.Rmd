@@ -111,7 +111,7 @@ setwd(pathToProjectOutput)
 deseqOutput <- deseq_contrasts(dds_deseq, myAlpha, c('PCR_integration', 'Y', 'N'), 'INTvCLEAN_gene', currDate, expName, geneList16p)
 
 deseqOutput_df <- data.frame(deseqOutput)
-deseqOutput_signif_df <- deseqOutput_df[which(deseqOutput_df$padj < myAlpha),]
+deseqOutput_signif_df <- deseqOutput_df[which(deseqOutput_df$padj < as.numeric(myAlpha)),]
 deseqOutput_signif_df <- deseqOutput_signif_df[order(deseqOutput_signif_df$padj),]
 deseqOutput_signif_df_100 <- deseqOutput_signif_df[c(1:100),]
 
@@ -190,6 +190,106 @@ makeVolcanoPlot(deseqOutput_df,
 
 ```
 
+
+
+# 2019.06.04 // Quantified measure of extreme expression
+```{r}
+# 
+# # size factor normalization
+# dds_kal <- estimateSizeFactors(dds_kal)
+# normalized_counts <- counts(dds_kal, normalized=TRUE)
+
+# Integration severity across all DE genes genes
+
+library(dplyr)
+
+## prepare data frame of just DE genes
+normDataInDf <- data.frame(assay(dds_kal_vst_bc))
+just_de <- normDataInDf[row.names(normDataInDf) %in% row.names(deseqOutput_signif_df),] # MAKE SURE SIGNIF DE LIST HAS SOX13 LIKE IT SHOULD
+
+probeMeans <- apply( just_de, 1, mean ) 
+probeSd <- apply( just_de, 1, sd ) 
+
+## calculate z-scores
+zScores <- sweep(sweep(just_de, 1, probeMeans), 1, probeSd, FUN='/')
+
+## which are down in Int+? (flip these signs)
+downInInt <- row.names(deseqOutput_signif_df[which(deseqOutput_signif_df$log2FoldChange < 0),])
+zScores[which(row.names(zScores) %in% downInInt),] <- zScores[which(row.names(zScores) %in% downInInt),]*-1
+
+## calculate expression extremity
+sample_zScore_sum <- data.frame(colSums(zScores))
+sample_zScore_sum$integration_status <- 'clean'
+sample_zScore_sum[which(row.names(sample_zScore_sum) %in% intClones),'integration_status'] <- 'integration_pos_by_pcr'
+sample_zScore_sum$longID <- pull(metadata[match(row.names(sample_zScore_sum), metadata$DESeqAnalysisID), 'Line'])
+
+
+```
+
+## correlation of plas_* and (control?) with severity score
+```{r}
+
+## plasmid names
+plasNames <- grep("plas",row.names(normDataInDf), value=TRUE)
+namesToPlot <- c(plasNames, 'POU5F1', 'KIF22', 'PAX6', 'TP53', 'LRCH3', 'LIN28A', 'MYCL', 'KLF4', 'SOX2') # LRCH3 highly expressed and not DE
+plasData <- t(normDataInDf[which(row.names(normDataInDf) %in% namesToPlot),])
+plasData <- plasData[match(row.names(plasData), row.names(sample_zScore_sum)),]
+
+## add in shp info for that
+sample_zScore_sum_withExprs <- cbind(sample_zScore_sum, plasData)
+
+for (geneToCompare in names(sample_zScore_sum_withExprs)[4:length(sample_zScore_sum_withExprs)] ){
+  
+  # data we'll use
+  scores <- sample_zScore_sum_withExprs[,1]
+  exprs <- sample_zScore_sum_withExprs[geneToCompare][,1]
+  
+  # regression
+  myLinReg <- lm(formula = exprs ~ scores) #myLm$coefficients[1], myLm$coefficients[2]
+  
+
+  
+  # plot
+  plot(scores,exprs,
+       main = paste0('Z-score Severity Score vs. \nRlog Normed/Batch Corrected Expression of ', geneToCompare),
+       xlab = 'Z-score based severity score',
+       ylab = 'Expression')
+  abline(myLinReg$coefficients[1], myLinReg$coefficients[2])
+  
+  print(paste0('### TESTING FOR ', geneToCompare, '###'))
+  print( cor.test(scores, exprs, method = c("pearson", "kendall", "spearman")) )
+
+  
+}
+
+
+```
+
+
+## do that agan but with 16p region genes
+```{r}
+
+## prepare data frame of just DE genes
+just_de_16p <- assay(dds_kal_vst_bc)
+just_de_16p <- just_de[row.names(just_de) %in% geneList16p[geneList16p[,1] %in% row.names(deseqOutput_signif_df),1],] # MAKE SURE SIGNIF DE LIST HAS SOX13 LIKE IT SHOULD
+
+probeMeans_16p <- apply( just_de_16p, 1, mean ) 
+probeSd_16p <- apply( just_de_16p, 1, sd ) 
+
+## calculate z-scores
+zScores_16p <- sweep(sweep(just_de_16p, 1, probeMeans), 1, probeSd, FUN='/')
+
+## which are down in Int+? (flip these signs)
+downInInt_16p <- row.names(deseqOutput_signif_df[which(deseqOutput_signif_df$log2FoldChange < 0),])
+zScores_16p[which(row.names(zScores_16p) %in% downInInt_16p),] <- zScores_16p[which(row.names(zScores_16p) %in% downInInt_16p),]*-1
+
+## calculate expression extremity
+sample_zScore_sum_16p <- data.frame(colSums(zScores_16p))
+sample_zScore_sum_16p$integration_status <- 'clean'
+sample_zScore_sum_16p[which(row.names(sample_zScore_sum_16p) %in% intClones),'integration_status'] <- 'integration_pos_by_pcr'
+sample_zScore_sum_16p$longID <- pull(metadata[ match(row.names(sample_zScore_sum_16p), metadata$DESeqAnalysisID) , 'Line'])
+
+```
 
 
 # HOUSEKEEPING

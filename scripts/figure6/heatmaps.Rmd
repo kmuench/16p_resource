@@ -23,15 +23,23 @@ myAlpha <- userVars[userVars$variable=='myAlpha', 'path']
 
 pathToSetupData <- userVars[userVars$variable=='date_mostRecent_setup', 'path']
 
+# # path to DESeq output
+# pathToDESeqOutput <- paste0(projDir,'/output/figure6/deseq/',userVars[userVars$variable=='date_mostRecent_setup', 'path'],'/other' )
+
+
 # path to DESeq output
-pathToDESeqOutput <- paste0(projDir,'/output/figure6/deseq/',userVars[userVars$variable=='date_mostRecent_setup', 'path'],'/other' )
+pathToDESeqOutput <- paste0(projDir,'output/figure6/deseq/','20181115','/RData' )
 
 ```
 
 ## load needed variables
 ```{r}
+# # Load setup data
+# load( paste0(projDir, 'output/figure6/tximport_setup/', pathToSetupData, "/RData/", pathToSetupData, "_tximport_setup_setupVars.RData") )
+
 # Load setup data
-load( paste0(projDir, 'output/figure6/tximport_setup/', pathToSetupData, "/RData/", pathToSetupData, "_tximport_setup_setupVars.RData") )
+load( paste0(projDir, 'output/figure6/tximport_setup/', '20181115' , "/RData/", '20181115', "_tximport_setup_setupVars.RData") )
+
 
 # Load deseq data
 load( paste0(pathToDESeqOutput, "/DEGenes_top100.RData") )
@@ -95,6 +103,30 @@ plot_de <- plotData[,which(colnames(plotData) %in% namesOfDEGenes)]
 plot_de_100 <- plotData[,which(colnames(plotData) %in% row.names(deseqOutput_signif_df_100))]
 
 ```
+
+
+```{r}
+DE_heatmap(plot_de, 
+           sampleTable_plus, 
+           c('PCR_integration'), 
+           'DESeqAnalysisID', 
+           30,15, 
+           'DE_expression_YlOrRed_TST.pdf', 
+           myColors = colorRampPalette(rev(brewer.pal(n = 7, name ="YlOrRd")))(100), 
+           myAnnotationColors = annColors, 
+           26)
+
+DE_heatmap(plot_de, 
+           sampleTable_plus, 
+           c('PCR_integration'), 
+           'DESeqAnalysisID', 
+           30,15, 
+           'DE_expression_YlOrRed_TST2.pdf', 
+           myColors = colorRampPalette(brewer.pal(n = 7, name ="YlOrRd"))(100), 
+           myAnnotationColors = annColors, 
+           26)
+```
+
 
 ## Plot: batch corrected vst-normalized expression data
 ```{r}

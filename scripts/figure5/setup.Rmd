@@ -313,6 +313,33 @@ sampSimilarityHeatmap(assay(myData_vst_bc), sampleTable_collapsed, c('Genotype',
 ```
 
 
+# 2019/06/28 : Study MIRS
+```{r}
+
+tst <- assay(myData_vst_bc)
+tst2 <- assay(myData_vst)
+
+tst_mir <- tst[grep("MIR", row.names(tst)),]
+tst_mir2 <- tst2[grep("MIR", row.names(tst2)),]
+
+tst_mir <- tst_mir[rev(order(rowSums(tst_mir))),] # order from most to least expressd
+tst_non_mir <- tst[which(!(row.names(tst) %in% row.names(tst_mir))),]
+hist(apply(tst, 1, mean))
+hist(apply(tst_mir, 1, mean))
+hist(apply(tst_non_mir, 1, mean))
+
+# mean of non-mir means
+nonMirMean <- mean(apply(tst_non_mir, 1, mean))
+mirMeans <- apply(tst_mir, 1, mean)
+which(mirMeans > nonMirMean)
+
+# 
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("mirbase.db")
+
+```
 
 
 # HOUSEKEEPING

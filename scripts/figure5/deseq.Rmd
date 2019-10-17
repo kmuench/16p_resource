@@ -121,6 +121,34 @@ myData_vst_bc_exprs <- assay(myData_vst_bc)
 ```
 
 
+# Create files that Theo wanted (10/16/2019)
+```{r}
+
+# Combine DESeq output and expression data
+myData_vst_bc_exprs
+
+exprsAndDEOutput <- merge(myData_vst_bc_exprs, deseqOutput_16p[, c('log2FoldChange', 'padj')], by='row.names')
+
+# Are those genes in our gene list?
+
+## Import Theo's list of genes
+theo16pList <- read.table("~/Desktop/20191016_newTheo16pList.csv", quote="\"", comment.char="")
+
+## In DE list?
+exprsAndDEOutput$theoList <- FALSE
+exprsAndDEOutput[which(exprsAndDEOutput$Row.names %in% theo16pList[,1]), 'theoList'] <- TRUE
+
+## What about raw data?
+rawData <- data.frame(counts(myData))
+rawData$theoList <- FALSE
+rawData[which(row.names(rawData) %in% theo16pList[,1]), 'theoList'] <- TRUE
+
+# Save
+setwd('~/Desktop')
+write.csv(exprsAndDEOutput, file='20191016_exprsAndDEOutput.csv', quote=FALSE)
+
+```
+
 
 # Visualize data
 
@@ -181,18 +209,266 @@ annColors <- list(Genotype = c(DEL='#636363',WT='#bdbdbd'),
 # load needed libraries
 library(pheatmap)
 
+# Aug 13 2019: make special area
+setwd(file.path(pathToProjectOutput, '/specialGraphs_08132019'))
+
+
 # plot pheatmap
-setwd(pathToProjectOutput)
+
+## Using colorbrewer
 pheatmap(t(plot_de), 
          annotation_row = my_pheno_col, 
          cluster_rows = FALSE, gaps_row = 13, 
-         filename = 'degene_scaled_BuPu_LineNames_4p8.pdf', 
+         filename = 'degene_scaled_cbrewer_BuPu_LineNames_4p8.pdf', 
          width = 30, 
          height = 4.8, 
          color = colorRampPalette(rev(brewer.pal(n = 7, name ="BuPu")))(100),
          scale='column',
          annotation_colors = annColors)
 
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_cbrewer_YlOrRd_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="YlOrRd")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_cbrewer_YlOrBr_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="YlOrBr")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_cbrewer_Greens_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="Greens")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_cbrewer_Purples_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="Purples")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_cbrewer_PuRd_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="PuRd")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_cbrewer_PuBuGn_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="PuBuGn")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_cbrewer_PuBu_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="PuBu")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_cbrewer_RdPu_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="RdPu")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_cbrewer_BuGn_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="BuGn")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_cbrewer_GnBu_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="GnBu")))(100),
+         scale='column',
+         annotation_colors = annColors)
+
+
+## Viridis
+library(viridis)
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_viridis_optionD_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = viridis(100, option = "D"),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_viridis_optionA_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = viridis(100, option = "A"),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_viridis_optionB_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = viridis(100, option = "B"),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_viridis_optionC_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = viridis(100, option = "C"),
+         scale='column',
+         annotation_colors = annColors)
+
+## wes anderson palettes
+install.packages("wesanderson")
+library(wesanderson)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_wesanderson_zissou1_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = wes_palette("Zissou1", 100, type = "continuous"),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_wesanderson_rushmore1_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = wes_palette("Rushmore1", 100, type = "continuous"),
+         scale='column',
+         annotation_colors = annColors)
+
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_wesanderson_royal1_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = wes_palette("Royal1", 100, type = "continuous"),
+         scale='column',
+         annotation_colors = annColors)
+
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_wesanderson_royal2_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = wes_palette("Royal2", 100, type = "continuous"),
+         scale='column',
+         annotation_colors = annColors)
+
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_wesanderson_darjeeling1_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = wes_palette("Darjeeling1", 100, type = "continuous"),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_wesanderson_darjeeling2_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = wes_palette("Darjeeling2", 100, type = "continuous"),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_wesanderson_fantasticfox1_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = wes_palette("FantasticFox1", 100, type = "continuous"),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_wesanderson_moonrise1_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = wes_palette("Moonrise1", 100, type = "continuous"),
+         scale='column',
+         annotation_colors = annColors)
+
+pheatmap(t(plot_de), 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 13, 
+         filename = 'degene_scaled_wesanderson_grandbudapest1_LineNames_4p8.pdf', 
+         width = 30, 
+         height = 4.8, 
+         color = wes_palette("GrandBudapest1", 100, type = "continuous"),
+         scale='column',
+         annotation_colors = annColors)
 ```
 
 
@@ -243,33 +519,59 @@ library(dplyr)
 plotData_plot <- plotData_melt %>% group_by(Genotype,Gene) %>% summarize(myMean = mean(value)) 
 plotData_plot_2 <- dcast(plotData_plot, Gene ~ Genotype)
 plotData_plot_2$gene16p <- ""
-plotData_plot_2$gene16p[which(plotData_plot_2$Gene %in% geneList16p[,1])] <- 'TRUE'
+plotData_plot_2$gene16p[which(plotData_plot_2$Gene %in% geneList16p[,1])] <- "TRUE"
 plotData_plot_2$gene16p <- factor(plotData_plot_2$gene16p, levels = c("TRUE", ""))
 
+plotData_plot_2$gene16p <- plotData_plot_2$Gene
+plotData_plot_2$gene16p <- factor(plotData_plot_2$gene16p, levels = c(geneList16p, ""))
+plotData_plot_2$gene16p[which(!(plotData_plot_2$Gene %in% geneList16p[,1]))] <- ""
+
 # plot
+
+## make basic plot
 library(ggplot2)
 library(ggrepel)
 ggplot(plotData_plot_2, aes(x=WT, y=DEL, label = gene16p) ) + 
   geom_point(color = ifelse(!(plotData_plot_2$gene16p == ""), "red", "grey50")) + theme_minimal() +
   geom_text_repel()
 
+## add in layers representing
+### Rd/Or color scheme: noDE = "#F28E2B", DE = "#E15759"
+### Or/Sf: noDE = "#1b9e77", DE= "#d95f02" (colorbrewer approved)
+### Pu/Gr: noDE = "#7570b3", DE= "#1b9e77" (colorbrewer approved)
+
 genes16p_de_data <- plotData_plot_2[which(plotData_plot_2$Gene %in% row.names(deseqOutput_16p_sig)), ]
 genes16p_notDE_data <- plotData_plot_2[which(plotData_plot_2$Gene %in% geneList16p[,1] & !(plotData_plot_2$Gene %in% row.names(deseqOutput_16p_sig)) ), ]
 
+### both types of 16p genes
 p <- ggplot() + 
   geom_point(data = plotData_plot_2, aes(x=WT, y=DEL), color = "#BAB0AC") + 
-  geom_point(data = genes16p_notDE_data, aes(x=WT, y=DEL), color = "#F28E2B") + 
-  geom_point(data = genes16p_de_data, aes(x=WT, y=DEL), color = "#E15759") + 
+  geom_point(data = genes16p_notDE_data, aes(x=WT, y=DEL), color = "#7570b3", size=1) + 
+  geom_point(data = genes16p_de_data, aes(x=WT, y=DEL), color = "#1b9e77", size=1) + 
   geom_abline(
       intercept=0,
       slope=1
     ) +
   theme_minimal() +
-  geom_label_repel(data=genes16p_notDE_data, aes(x=WT, y=DEL, label=Gene), fontface="bold", color="#F28E2B", force = 10, segment.size = 0.2, direction = "x", segment.color = "grey50", nudge_y = 16 - subset(genes16p_notDE_data, WT < 9)$WT) +
-  geom_label_repel(data=genes16p_de_data, aes(x=WT, y=DEL, label=Gene), fontface="bold", color="#E15759", force = 20, segment.size = 0.2, direction = "y", segment.color = "grey50", nudge_x = 15 - subset(genes16p_de_data, WT < 10)$WT)
+  geom_label_repel(data=genes16p_notDE_data, aes(x=WT, y=DEL, label=Gene), fontface="bold", color="#7570b3", force = 10, segment.size = 0.2, direction = "x", segment.color = "grey50", nudge_y = 16 - subset(genes16p_notDE_data, WT < 9)$WT) +
+  geom_label_repel(data=genes16p_de_data, aes(x=WT, y=DEL, label=Gene), fontface="bold", color="#1b9e77", force = 20, segment.size = 0.2, direction = "y", segment.color = "grey50", nudge_x = 15 - subset(genes16p_de_data, WT < 10)$WT)
 
 setwd('~/Desktop')
-ggsave('xmasTreePlot_subsetGoodClones_vst_bc.pdf', p, device = 'pdf', height=20, width=25, unit = 'cm')
+ggsave('xmasTreePlot_cleanClones_vst_bc_DE16pgenes_other16pgenes_PuGr_size1.pdf', p, device = 'pdf', height=20, width=25, unit = 'cm')
+
+### just DE genes
+p <- ggplot() + 
+  geom_point(data = plotData_plot_2, aes(x=WT, y=DEL), color = "#BAB0AC") + 
+  geom_point(data = genes16p_de_data, aes(x=WT, y=DEL), color = "#7570b3", size=1) + 
+  geom_abline(
+      intercept=0,
+      slope=1
+    ) +
+  theme_minimal() +
+  geom_label_repel(data=genes16p_de_data, aes(x=WT, y=DEL, label=Gene), fontface="bold", color="#7570b3", force = 20, segment.size = 0.2, direction = "y", segment.color = "grey50", nudge_x = 15 - subset(genes16p_de_data, WT < 10)$WT)
+
+setwd('~/Desktop')
+ggsave('xmasTreePlot_cleanClones_vst_bc_DE16pgenes_Rd_size1.pdf', p, device = 'pdf', height=20, width=25, unit = 'cm')
 
 ```
 

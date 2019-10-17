@@ -31,7 +31,7 @@ pathTo16pGeneList <- userVars[userVars$variable=='pathTo16pGeneList', 'path']
 ## Make folders for this
 ```{r}
 # name for files etc
-expName <- 'setup'
+expName <- 'setup_dontRemoveIntegrationData'
 
 # make folder to contain experiment output
 
@@ -79,13 +79,14 @@ sampleTable_withUND <- data.frame( metadata[,c('DESeqAnalysisID', 'FileName',
 ## remove anything with no file name in case of Excel spreadsheet error
 sampleTable_withUND <- sampleTable_withUND[!(is.na(sampleTable_withUND$DESeqAnalysisID)),]
 
-## remove UND and DUP samples for this run
-sampleTable_DELvWT <- sampleTable_withUND[!(sampleTable_withUND$Genotype == 'UND' | sampleTable_withUND$Genotype == 'DUP'),] 
+# ## remove UND and DUP samples for this run
+# sampleTable_DELvWT <- sampleTable_withUND[!(sampleTable_withUND$Genotype == 'UND' | sampleTable_withUND$Genotype == 'DUP'),]
+sampleTable_DELvWT <- sampleTable_withUND[!(sampleTable_withUND$Genotype == 'UND'),]
 
 ## only extract clean (non-integrated) clones
-cleanClones <- read_csv(pathToCleanClones, na = 'NA', col_names=FALSE)
-sampleTable <- subset(sampleTable_DELvWT, sampleTable_DELvWT$Line %in% unlist(cleanClones[,1]) )
-
+# cleanClones <- read_csv(pathToCleanClones, na = 'NA', col_names=FALSE)
+# sampleTable <- subset(sampleTable_DELvWT, sampleTable_DELvWT$Line %in% unlist(cleanClones[,1]) )
+sampleTable <- sampleTable_DELvWT
 
 # add factor for high/low IQ
 sampleTable$IQbin <- 'Unknown'

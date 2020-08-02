@@ -54,6 +54,7 @@ pathToCleanClones <- userVars[userVars$variable=='pathToCleanClones', 'path']
 
 limmaDE_DupCorr_BatchCorrSexSeqBatch <- read.delim("~/Dropbox/ThesisProjects/cnv16p/2017/resourcePaper/16p_resource/output/figure5/limmavoom/20200711/other/limmaDE_DupCorr_BatchCorrSexSeqBatch.txt")
 limmavoom_signifGenes <- subset(limmaDE_DupCorr_BatchCorrSexSeqBatch, subset = limmaDE_DupCorr_BatchCorrSexSeqBatch$adj.P.Val < 0.05)['Gene']
+
 ```
 
 
@@ -171,8 +172,8 @@ myData_vst_bc_df <- myData_vst_bc_df[, keep]
 metadata_jgr$LineWithX <- paste0('X',metadata_jgr$Line)
 traitsToPlot_del <- c('LineWithX', 'Genotype', 'SeqBatch', 'GrowBatch', 'Sex', 
                   'Age', 'IQ', 'Articulation', 'ASD', 'Behavior',
-                  'Coordination', 'Enuresis', 'Language', 'Head_Circum', 'Head_Circum_Z', 'Height', 'Height_Z',
-                  'Weight', 'Weight_Z', 'BMI', 'BMI_Z')
+                  'Coordination', 'Enuresis', 'Language', 'Head_Circum_Z', 'Height_Z',
+                  'Weight_Z', 'BMI_Z') # remove for redundancy: 'BMI', 'Weight', 'Height', 'Head_Circum'
 
 datTraits_del <- metadata_jgr[, names(metadata_jgr) %in% traitsToPlot_del]
 rownames(datTraits_del) <- datTraits_del[,7]
@@ -220,15 +221,17 @@ myData <- as.data.frame(t(myData_vst_bc_df)) # because tutorial works w transpos
 # Outlier detection: cluster samples based on Euclidean distance
 sampleTree = hclust(dist(myData), method = "average");
 
-# Plot the sample tree and save to pdf
-setwd(pathToProjectOutput)
-sizeGrWindow(12,9) # Open a graphic output window of size 12 by 9 inches
-pdf(file = "sampleClustering.pdf", width = 12, height = 9)
-
-par(cex = 0.6);
-par(mar = c(0,4,2,0))
-plot(sampleTree, main = "Sample clustering to detect outliers", sub="", xlab="", cex.lab = 1.5,
-     cex.axis = 1.5, cex.main = 2)
+# # # this block is buggy and may not be useful - remove? # #
+# # Plot the sample tree and save to pdf
+# setwd(pathToProjectOutput)
+# # sizeGrWindow(12,9) # Open a graphic output window of size 12 by 9 inches
+# # pdf(file = "sampleClustering.pdf", width = 12, height = 9)
+# # 
+# # par(cex = 0.6);
+# # par(mar = c(0,4,2,0))
+# plot(sampleTree, main = "Sample clustering to detect outliers", sub="", xlab="", cex.lab = 1.5,
+#      cex.axis = 1.5, cex.main = 2)
+# # #
 
 # There is an outlier, so remove from set using height threshold
 keep = which(!(rownames(myData) %in% 'X8343.5'))
@@ -238,13 +241,14 @@ datTraits_del <- datTraits_del [which(!(rownames(datTraits_del) %in% 'X8343.5'))
 # Plot again the sample tree and save to pdf
 sampleTree = hclust(dist(myData), method = "average");
 
-setwd(pathToProjectOutput)
-sizeGrWindow(12,9) # Open a graphic output window of size 12 by 9 inches
-pdf(file = "sampleClustering_withoutOutlier.pdf", width = 12, height = 9)
-par(cex = 0.6);
-par(mar = c(0,4,2,0))
-plot(sampleTree, main = "Sample clustering to detect outliers", sub="", xlab="", cex.lab = 1.5,
-     cex.axis = 1.5, cex.main = 2)
+# # # this block is buggy and may not be useful - remove? # #
+# setwd(pathToProjectOutput)
+# # sizeGrWindow(12,9) # Open a graphic output window of size 12 by 9 inches
+# # pdf(file = "sampleClustering_withoutOutlier.pdf", width = 12, height = 9)
+# # par(cex = 0.6);
+# # par(mar = c(0,4,2,0))
+# plot(sampleTree, main = "Sample clustering to detect outliers")
+# # # 
 
 # Plot sample tree wiht colors underneath
 traitColors = numbers2colors(datTraits_del, signed = FALSE);
@@ -366,10 +370,7 @@ addGuide = TRUE, guideHang = 0.05)
 #3. Relate modules to external clinical traits and identifying important genes:
 https://labs.genetics.ucla.edu/horvath/CoexpressionNetwork/Rpackages/WGCNA/Tutorials/FemaleLiver-03-relateModsToExt.pdf
 
-Interesting modules: 
-MEpink: Associated w Articulation, Coodination
-MEturquoise: Associated w Articulation, Coordination
-MEmidnightblue: GrowBatch
+
 
 
 ```{r}
@@ -415,7 +416,7 @@ labeledHeatmap(Matrix = moduleTraitCor,
                zlim = c(-1,1),
                main = paste("Module-trait relationships"))
 
-# Create a heatmap of just the pvalues !!!!
+# Create a heatmap of just the pvalues
 ## - add color tiles to the top
 ## - ggsave it
 library(pheatmap)
@@ -468,23 +469,6 @@ pheatmap(mat = t(scaled_moduleTraitPval),
 
 #3b. Gene relationship to trait and important modules: Gene Significance and Module Membership
 
-INTERESTING MODULES:
-MEbisque4 - Weight_Z, Weight, Age, BMI, BMI_Z
-MEpink4 - Weight_Z, Weight, Age, BMI, BMI_Z, Language
-MEdarkseagreen2 - Weight_Z, Age
-MEskyblue1 - Weight_Z, Weight, Age, BMI
-MEblue - Behavior
-MElightcoral - Behavior
-MEpalevioletred2 - Behavior
-MEfirebrick4 - Behavior
-MEmediumpurple1 - Behavior
-MEblue2 - GrowBatch, Weight_Z
-MEdarkred - Language, Weight_Z
-MEsaddlebrown - Weight_Z, Age, Weight
-MEyellow4 - Weight_Z, Weight
-MEbrown - Weight_Z
-
-Focus on: Weight_Z, Age, GrowBatch, Behavior, Language, BMI_Z
 
 We quantify associations of individual genes with our trait of interest (weight) by defining Gene Significance GS as (the absolute value of) the correlation between the gene and the trait. 
 
@@ -543,7 +527,7 @@ datTraits_age_genoSig <- calcGeneTraitSig(datTraits_del, myData, nSamples, 'Age'
 datTraits_growBatch_genoSig <- calcGeneTraitSig(datTraits_del, myData, nSamples, 'GrowBatch')
 datTraits_behavior_genoSig <- calcGeneTraitSig(datTraits_del, myData, nSamples, 'Behavior')
 datTraits_language_genoSig <- calcGeneTraitSig(datTraits_del, myData, nSamples, 'Language')
-datTraits_bmi_genoSig <- calcGeneTraitSig(datTraits_del, myData, nSamples, 'BMI')
+datTraits_bmi_genoSig <- calcGeneTraitSig(datTraits_del, myData, nSamples, 'BMI_Z')
 
 ```
 
@@ -583,11 +567,18 @@ setwd(pathToProjectOutput)
 write.csv(tallyModMem_16p, file = 'tallyModMem_16p.csv')
 
 # What modules contain DE genes?
+## Original list
 namesOfDEGenes <- read.table("~/Dropbox/ThesisProjects/cnv16p/2017/resourcePaper/16p_resource/output/figure5/deseq/20191016/other/namesOfDEGenes.txt", quote="\"", comment.char="")
 tallyModMem_deGenes <- tallyModuleMembership_max_genesOfInterest(geneModuleMembership, namesOfDEGenes[,1])
 
 setwd(pathToProjectOutput)
-write.csv(tallyModMem_deGenes, file = 'tallyModMem_deGenes.csv')
+write.csv(tallyModMem_deGenes, file = 'tallyModMem_deGenes_originalDElist.csv')
+
+
+## New list
+tallyModMem_deGenes_limmavoom <- tallyModuleMembership_max_genesOfInterest(geneModuleMembership, limmavoom_signifGenes[,1])
+setwd(pathToProjectOutput)
+write.csv(tallyModMem_deGenes_limmavoom, file = 'tallyModMem_deGenes_limmavoomDElist.csv')
 ```
 
 
@@ -599,7 +590,7 @@ with weight. We plot a scatterplot of Gene Significance vs. Module Membership in
 
 Look for highly significant correlation between gene significance (in a trait) and module membership.
 
-## Function to examine correlation between a gene's module membership and
+## Function to examine correlation between a gene's module membership and its significance in a trait
 ```{r}
 
 scatterplotGSvsMM <- function( module, pathToProjectOutput, modNames, bwModuleColors, geneModuleMembership, datTraits_genoSig, datTraitName){
@@ -629,34 +620,11 @@ scatterplotGSvsMM <- function( module, pathToProjectOutput, modNames, bwModuleCo
 ```
 
 ## Make GSvsMM Scatterplots for modules of interest
-INTERESTING MODULES:
-MEbisque4 - Weight_Z, Weight, Age, BMI, BMI_Z
-MEpink4 - Weight_Z, Weight, Age, BMI, BMI_Z, Language
-MEdarkseagreen2 - Weight_Z, Age
-MEskyblue1 - Weight_Z, Weight, Age, BMI
-MEblue - Behavior
-MElightcoral - Behavior
-MEpalevioletred2 - Behavior
-MEfirebrick4 - Behavior
-MEmediumpurple1 - Behavior
-MEblue2 - GrowBatch, Weight_Z
-MEdarkred - Language, Weight_Z
-MEsaddlebrown - Weight_Z, Age, Weight
-MEyellow4 - Weight_Z, Weight
-MEbrown - Weight_Z
+
 ```{r}
 
-
-# For autism - perhaps not relevant bc nothing is signif
-modulesOfInterest_asd <- c('grey60', 'orange', 'cyan', 'royalblue', 'purple', 'grey')
-for (g in modulesOfInterest_asd){
-  print(g)
-  scatterplotGSvsMM(g, pathToProjectOutput,  modNames, bwModuleColors, geneModuleMembership, 
-                    datTraits_asd_genoSig, datTraitName = 'ASD')
-}
-
 # For Weight_Z
-modulesOfInterest_weight <- c('bisque4', 'pink4', 'darkseagreen2', 'skyblue1', 'blue2', 'darkred', 'saddlebrown', 'yellow4', 'brown')
+modulesOfInterest_weight <- c('skyblue1', 'darkseagreen2', 'pink4', 'bisque4', 'darkred', 'blue2', 'brown', 'yellow4', 'saddlebrown')
 for (g in modulesOfInterest_weight){
   print(g)
   scatterplotGSvsMM(module = g, 
@@ -669,7 +637,7 @@ for (g in modulesOfInterest_weight){
 }
 
 # For Age
-modulesOfInterest_age <- c('bisque4', 'pink4', 'darkseagreen2', 'skyblue1', 'saddlebrown')
+modulesOfInterest_age <- c('skyblue1', 'darkseagreen2', 'pink4', 'bisque4', 'saddlebrown')
 for (g in modulesOfInterest_age){
   print(g)
   scatterplotGSvsMM(g, pathToProjectOutput,  modNames, bwModuleColors, geneModuleMembership, 
@@ -677,7 +645,7 @@ for (g in modulesOfInterest_age){
 }
 
 # For GrowBatch
-modulesOfInterest_gb <- c('blue2')
+modulesOfInterest_gb <- c('blue2', 'darkred')
 for (g in modulesOfInterest_gb){
   print(g)
   scatterplotGSvsMM(g, pathToProjectOutput,  modNames, bwModuleColors, geneModuleMembership, 
@@ -685,7 +653,7 @@ for (g in modulesOfInterest_gb){
 }
 
 # For Behavior
-modulesOfInterest_behav <- c('blue', 'lightcoral', 'palevioletred2', 'firebrick4', 'mediumpurple1')
+modulesOfInterest_behav <- c('blue', 'palevioletred2', 'firebrick4', 'lightcoral', 'mediumpurple1')
 for (g in modulesOfInterest_behav){
   print(g)
   scatterplotGSvsMM(g, pathToProjectOutput,  modNames, bwModuleColors, geneModuleMembership, 
@@ -694,15 +662,15 @@ for (g in modulesOfInterest_behav){
 
 
 # For Language
-modulesOfInterest_lang <- c('darkred')
+modulesOfInterest_lang <- c('pink4', 'darkred')
 for (g in modulesOfInterest_lang){
   print(g)
   scatterplotGSvsMM(g, pathToProjectOutput,  modNames, bwModuleColors, geneModuleMembership, 
                     datTraits_language_genoSig, datTraitName = 'Language')
 }
 
-# For Language
-modulesOfInterest_bmi <- c('bisque4', 'pink4', 'skyblue1')
+# For BMI_Z
+modulesOfInterest_bmi <- c('bisque4', 'pink4')
 for (g in modulesOfInterest_bmi){
   print(g)
   scatterplotGSvsMM(g, pathToProjectOutput,  modNames, bwModuleColors, geneModuleMembership, 
@@ -718,17 +686,31 @@ for (g in modulesOfInterest_bmi){
 We have found modules with high association with our trait of interest, and have identified their central players by
 the Module Membership measure. We now merge this statistical information with gene annotation and write out a
 file that summarizes the most important results and can be inspected in standard spreadsheet software such as MS
-Excel or Open Office Calc.w
+Excel or Open Office Calc.
+
+
 
 ```{r} 
 
-# !!!! Add more of the geneTraitSig 
+# Create data frame with gene trait significance
 geneInfo0 = data.frame(gene = names(myData),
                        moduleColor = bwModuleColors,
-                       geneTraitSignificance_Behavior = datTraits_behavior_genoSig[['geneTraitSignificance']][,1],
-                       GSPvalue = datTraits_behavior_genoSig[['GSPvalue']][,1])
+                       geneTraitCorrelation_Behavior = datTraits_behavior_genoSig[['geneTraitSignificance']][,1],
+                       GS_Pvalue_Behavior = datTraits_behavior_genoSig[['GSPvalue']][,1],
+                       geneTraitCorrelation_ASD = datTraits_asd_genoSig[['geneTraitSignificance']][,1],
+                       GS_Pvalue_ASD = datTraits_asd_genoSig[['GSPvalue']][,1],
+                       geneTraitCorrelation_Weight = datTraits_weight_genoSig[['geneTraitSignificance']][,1],
+                       GS_Pvalue_Weight = datTraits_weight_genoSig[['GSPvalue']][,1],
+                       geneTraitCorrelation_Age = datTraits_age_genoSig[['geneTraitSignificance']][,1],
+                       GS_Pvalue_Age = datTraits_age_genoSig[['GSPvalue']][,1],
+                       geneTraitCorrelation_growBatch = datTraits_growBatch_genoSig[['geneTraitSignificance']][,1],
+                       GS_Pvalue_growBatch = datTraits_growBatch_genoSig[['GSPvalue']][,1],
+                       geneTraitCorrelation_language = datTraits_language_genoSig[['geneTraitSignificance']][,1],
+                       GS_Pvalue_language = datTraits_language_genoSig[['GSPvalue']][,1],
+                       geneTraitCorrelation_bmi = datTraits_bmi_genoSig[['geneTraitSignificance']][,1],
+                       GS_Pvalue_bmi = datTraits_bmi_genoSig[['GSPvalue']][,1])
 
-geneInfo0 <- geneInfo0[order( abs(geneInfo0$geneTraitSignificance_Behavior), decreasing = TRUE ),]
+geneInfo0 <- geneInfo0[order( abs(geneInfo0$geneTraitCorrelation_Behavior), decreasing = TRUE ),]
 
 geneInfo0$gene16p <- 'Outside 16p Region'
 geneInfo0[which(geneInfo0$gene %in% geneList16p[,1]), 'gene16p'] <- 'Region 16p Gene'
@@ -740,6 +722,7 @@ geneInfo0[which(geneInfo0$gene %in% namesOfDEGenes[,1]), 'originalDElist'] <- 'D
 geneInfo0$limmavoomDElist <- 'Not DE'
 geneInfo0[which(geneInfo0$gene %in% limmavoom_signifGenes[,1]), 'limmavoomDElist'] <- 'DE in limmavoom list'
 
+write.csv(geneInfo0, file = file.path(pathToProjectOutput, 'geneInfo.csv'), quote = FALSE)
 
 ```
 
@@ -773,17 +756,19 @@ pheatmap(t(myData_vst_bc_subset),
 ```
 
 ## Visualize module specific genes
+
+### create gene annotation row
 ```{r}
 
-## create gene annotation row
-condition_annotation_row <- metadata_jgr[, names(metadata_jgr) %in% c('Weight_Z', 'Weight', 'BMI_Z', 'BMI', 'Age', 'Language', 'GrowBatch', 'Behavior', 'ASD') ]
+condition_annotation_row <- metadata_jgr[, names(metadata_jgr) %in% c('Weight_Z', 'BMI_Z', 'Age', 'Language', 'GrowBatch', 'Behavior', 'ASD') ]
 row.names(condition_annotation_row) <- metadata_jgr$LineWithX
 
-## Function for making heatmap
+```
+
+### Function for making heatmap
+```{r}
 plotExprsForAModule <- function(geneInfo0, moduleColorToVisualize, condition_annotation_row,
                                 myData_vst_bc_df, gene_annotation_col, mod_annotation_col_colors){
-  
-  
   
   # Subset data to focus on genes you want
   genesToPlot <- geneInfo0[geneInfo0$moduleColor == moduleColorToVisualize,'gene']
@@ -815,7 +800,11 @@ plotExprsForAModule <- function(geneInfo0, moduleColorToVisualize, condition_ann
            legend = TRUE) 
   }
 
-## Deploy function
+```
+
+### Deploy function
+```{r}
+
 plotExprsForAModule(geneInfo0 = geneInfo0, 
                     moduleColorToVisualize = 'darkred', 
                     condition_annotation_row = condition_annotation_row,
@@ -849,7 +838,7 @@ plotExprsForAModule(geneInfo0 = geneInfo0,
 
 
 plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'brown', 
+                    moduleColorToVisualize = 'saddlebrown', 
                     condition_annotation_row = condition_annotation_row,
                     myData_vst_bc_df = myData_vst_bc_df, 
                     gene_annotation_col = gene_annotation_col, 
@@ -857,7 +846,7 @@ plotExprsForAModule(geneInfo0 = geneInfo0,
 
 
 plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'cyan', 
+                    moduleColorToVisualize = 'skyblue1', 
                     condition_annotation_row = condition_annotation_row,
                     myData_vst_bc_df = myData_vst_bc_df, 
                     gene_annotation_col = gene_annotation_col, 
@@ -873,7 +862,7 @@ plotExprsForAModule(geneInfo0 = geneInfo0,
 
 
 plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'grey', 
+                    moduleColorToVisualize = 'pink4', 
                     condition_annotation_row = condition_annotation_row,
                     myData_vst_bc_df = myData_vst_bc_df, 
                     gene_annotation_col = gene_annotation_col, 
@@ -881,7 +870,31 @@ plotExprsForAModule(geneInfo0 = geneInfo0,
 
 
 plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'grey60', 
+                    moduleColorToVisualize = 'brown', 
+                    condition_annotation_row = condition_annotation_row,
+                    myData_vst_bc_df = myData_vst_bc_df, 
+                    gene_annotation_col = gene_annotation_col, 
+                    mod_annotation_col_colors = mod_annotation_col_colors)
+
+
+plotExprsForAModule(geneInfo0 = geneInfo0, 
+                    moduleColorToVisualize = 'yellow4', 
+                    condition_annotation_row = condition_annotation_row,
+                    myData_vst_bc_df = myData_vst_bc_df, 
+                    gene_annotation_col = gene_annotation_col, 
+                    mod_annotation_col_colors = mod_annotation_col_colors)
+
+
+plotExprsForAModule(geneInfo0 = geneInfo0, 
+                    moduleColorToVisualize = 'palevioletred2', 
+                    condition_annotation_row = condition_annotation_row,
+                    myData_vst_bc_df = myData_vst_bc_df, 
+                    gene_annotation_col = gene_annotation_col, 
+                    mod_annotation_col_colors = mod_annotation_col_colors)
+
+
+plotExprsForAModule(geneInfo0 = geneInfo0, 
+                    moduleColorToVisualize = 'firebrick4', 
                     condition_annotation_row = condition_annotation_row,
                     myData_vst_bc_df = myData_vst_bc_df, 
                     gene_annotation_col = gene_annotation_col, 
@@ -904,70 +917,12 @@ plotExprsForAModule(geneInfo0 = geneInfo0,
                     mod_annotation_col_colors = mod_annotation_col_colors)
 
 
-plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'orange', 
-                    condition_annotation_row = condition_annotation_row,
-                    myData_vst_bc_df = myData_vst_bc_df, 
-                    gene_annotation_col = gene_annotation_col, 
-                    mod_annotation_col_colors = mod_annotation_col_colors)
-
-
-plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'palevioletred1', 
-                    condition_annotation_row = condition_annotation_row,
-                    myData_vst_bc_df = myData_vst_bc_df, 
-                    gene_annotation_col = gene_annotation_col, 
-                    mod_annotation_col_colors = mod_annotation_col_colors)
-
-
-plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'pink4', 
-                    condition_annotation_row = condition_annotation_row,
-                    myData_vst_bc_df = myData_vst_bc_df, 
-                    gene_annotation_col = gene_annotation_col, 
-                    mod_annotation_col_colors = mod_annotation_col_colors)
-
-
-plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'purple',
-                    condition_annotation_row = condition_annotation_row,
-                    myData_vst_bc_df = myData_vst_bc_df, 
-                    gene_annotation_col = gene_annotation_col, 
-                    mod_annotation_col_colors = mod_annotation_col_colors)
-
-
-plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'royalblue', 
-                    condition_annotation_row = condition_annotation_row,
-                    myData_vst_bc_df = myData_vst_bc_df, 
-                    gene_annotation_col = gene_annotation_col, 
-                    mod_annotation_col_colors = mod_annotation_col_colors)
-
-
-plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'saddlebrown', 
-                    condition_annotation_row = condition_annotation_row,
-                    myData_vst_bc_df = myData_vst_bc_df, 
-                    gene_annotation_col = gene_annotation_col, 
-                    mod_annotation_col_colors = mod_annotation_col_colors)
-
-
-plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'skyblue1', 
-                    condition_annotation_row = condition_annotation_row,
-                    myData_vst_bc_df = myData_vst_bc_df, 
-                    gene_annotation_col = gene_annotation_col, 
-                    mod_annotation_col_colors = mod_annotation_col_colors)
-
-
-plotExprsForAModule(geneInfo0 = geneInfo0, 
-                    moduleColorToVisualize = 'yellow4', 
-                    condition_annotation_row = condition_annotation_row,
-                    myData_vst_bc_df = myData_vst_bc_df, 
-                    gene_annotation_col = gene_annotation_col, 
-                    mod_annotation_col_colors = mod_annotation_col_colors)
 
 ```
+
+# Repeat above but only take in genes with signif MMPvalue
+Didn't do this because it looked like the module assignments were much more stringent in geneInfo0, which is what I wanted
+
 
 # Housekeeping
 ```{r}

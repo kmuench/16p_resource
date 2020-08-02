@@ -28,7 +28,7 @@ pathToSetupData <- userVars[userVars$variable=='date_mostRecent_setup', 'path']
 
 
 # path to DESeq output
-pathToDESeqOutput <- paste0(projDir,'output/figure6/deseq/','20181115','/RData' )
+pathToDESeqOutput <- paste0(projDir,'output/figure6/deseq/','20181205','/RData' )
 
 ```
 
@@ -38,7 +38,7 @@ pathToDESeqOutput <- paste0(projDir,'output/figure6/deseq/','20181115','/RData' 
 # load( paste0(projDir, 'output/figure6/tximport_setup/', pathToSetupData, "/RData/", pathToSetupData, "_tximport_setup_setupVars.RData") )
 
 # Load setup data
-load( paste0(projDir, 'output/figure6/tximport_setup/', '20181115' , "/RData/", '20181115', "_tximport_setup_setupVars.RData") )
+load( paste0(projDir, 'output/figure6/tximport_setup/', '20181205' , "/RData/", '20181205', "_tximport_setup_setupVars.RData") )
 
 
 # Load deseq data
@@ -55,7 +55,7 @@ sampleTable_plus <- sampleTable_plus[order(sampleTable_plus$PCR_integration),]
 ## Make folders for this
 ```{r}
 # name for files etc
-expName <- 'heatmaps'
+expName <- 'heatmaps_specialRequestColors'
 
 # make folder to contain experiment output
 
@@ -105,27 +105,7 @@ plot_de_100 <- plotData[,which(colnames(plotData) %in% row.names(deseqOutput_sig
 ```
 
 
-```{r}
-DE_heatmap(plot_de, 
-           sampleTable_plus, 
-           c('PCR_integration'), 
-           'DESeqAnalysisID', 
-           30,15, 
-           'DE_expression_YlOrRed_TST.pdf', 
-           myColors = colorRampPalette(rev(brewer.pal(n = 7, name ="YlOrRd")))(100), 
-           myAnnotationColors = annColors, 
-           26)
 
-DE_heatmap(plot_de, 
-           sampleTable_plus, 
-           c('PCR_integration'), 
-           'DESeqAnalysisID', 
-           30,15, 
-           'DE_expression_YlOrRed_TST2.pdf', 
-           myColors = colorRampPalette(brewer.pal(n = 7, name ="YlOrRd"))(100), 
-           myAnnotationColors = annColors, 
-           26)
-```
 
 
 ## Plot: batch corrected vst-normalized expression data
@@ -162,6 +142,32 @@ DE_heatmap(plot_de_100,
            26)
 
 
+```
+
+```{r}
+
+# plot
+setwd(pathToProjectOutput)
+
+DE_heatmap(plot_de, 
+           sampleTable_plus, 
+           c('PCR_integration'), 
+           'DESeqAnalysisID', 
+           30,15, 
+           'DE_expression_YlOrRed_TST.pdf', 
+           myColors = colorRampPalette(rev(brewer.pal(n = 7, name ="YlOrRd")))(100), 
+           myAnnotationColors = annColors, 
+           26)
+
+DE_heatmap(plot_de, 
+           sampleTable_plus, 
+           c('PCR_integration'), 
+           'DESeqAnalysisID', 
+           30,15, 
+           'DE_expression_YlOrRed_TST2.pdf', 
+           myColors = colorRampPalette(brewer.pal(n = 7, name ="YlOrRd"))(100), 
+           myAnnotationColors = annColors, 
+           26)
 ```
 
 ## Plot: batch corrected vst-normalized Z-SCORES
@@ -204,6 +210,62 @@ sampleTable_plus_futz$Line.x <- as.factor(sampleTable_plus_futz$Line.x)
          width = 30, 
          height = 12.5, 
          color = colorRampPalette(rev(brewer.pal(n = 7, name ="BuPu")))(100),
+         scale='column',
+         annotation_colors = annColors)
+  
+  # plot pheatmap with different color palettes
+  setwd(pathToProjectOutput)
+
+# colorbrewer colors
+    pheatmap(plot_de_100, 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 26, 
+         filename = 'degene_scaled_YlOrRd_100_LineNames_tall.pdf', 
+         width = 30, 
+         height = 12.5, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="YlOrRd")))(100),
+         scale='column',
+         annotation_colors = annColors)
+    
+        pheatmap(plot_de_100, 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 26, 
+         filename = 'degene_scaled_YlOrBr_100_LineNames_tall.pdf', 
+         width = 30, 
+         height = 12.5, 
+         color = colorRampPalette(rev(brewer.pal(n = 7, name ="YlOrBr")))(100),
+         scale='column',
+         annotation_colors = annColors)
+  
+  # Viridis colors
+  library(viridis)
+  pheatmap(plot_de_100, 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 26, 
+         filename = 'degene_scaled_viridis_100_LineNames_tall.pdf', 
+         width = 30, 
+         height = 12.5, 
+         color = viridis(100, option = "D"),
+         scale='column',
+         annotation_colors = annColors)
+  
+    pheatmap(plot_de_100, 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 26, 
+         filename = 'degene_scaled_viridis_magma_100_LineNames_tall.pdf', 
+         width = 30, 
+         height = 12.5, 
+         color = viridis(100, option = "A"),
+         scale='column',
+         annotation_colors = annColors)
+    
+      pheatmap(plot_de_100, 
+         annotation_row = my_pheno_col, 
+         cluster_rows = FALSE, gaps_row = 26, 
+         filename = 'degene_scaled_viridis_inferno_100_LineNames_tall.pdf', 
+         width = 30, 
+         height = 12.5, 
+         color = viridis(100, option = "B"),
          scale='column',
          annotation_colors = annColors)
 

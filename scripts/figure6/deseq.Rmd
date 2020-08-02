@@ -194,17 +194,17 @@ makeVolcanoPlot(deseqOutput_df,
 
 # 2019.06.04 // Quantified measure of extreme expression
 ```{r}
-# 
-# # size factor normalization
-# dds_kal <- estimateSizeFactors(dds_kal)
-# normalized_counts <- counts(dds_kal, normalized=TRUE)
+
+# size factor normalization
+dds_kal <- estimateSizeFactors(dds_kal)
+normalized_counts <- counts(dds_kal, normalized=TRUE)
 
 # Integration severity across all DE genes genes
 
 library(dplyr)
 
 ## prepare data frame of just DE genes
-normDataInDf <- data.frame(assay(dds_kal_vst_bc))
+normDataInDf <- data.frame(normalized_counts)
 just_de <- normDataInDf[row.names(normDataInDf) %in% row.names(deseqOutput_signif_df),] # MAKE SURE SIGNIF DE LIST HAS SOX13 LIKE IT SHOULD
 
 probeMeans <- apply( just_de, 1, mean ) 
@@ -237,7 +237,29 @@ plasData <- plasData[match(row.names(plasData), row.names(sample_zScore_sum)),]
 
 ## add in shp info for that
 sample_zScore_sum_withExprs <- cbind(sample_zScore_sum, plasData)
+sample_zScore_sum_withExprs$allPOU5F1 <- sample_zScore_sum_withExprs$POU5F1 + sample_zScore_sum_withExprs$plas_shp
+sample_zScore_sum_withExprs$allSOX2 <- sample_zScore_sum_withExprs$SOX2 + sample_zScore_sum_withExprs$plas_hsk
+sample_zScore_sum_withExprs$allKLF4 <- sample_zScore_sum_withExprs$KLF4 + sample_zScore_sum_withExprs$plas_hsk
+sample_zScore_sum_withExprs$allMYCL <- sample_zScore_sum_withExprs$MYCL + sample_zScore_sum_withExprs$plas_hul
+sample_zScore_sum_withExprs$allLIN28A <- sample_zScore_sum_withExprs$LIN28A + sample_zScore_sum_withExprs$plas_hul
 
+
+## function useful for extracting correlation scors
+corrFunc <- function(var1, var2, data) {
+  results <- data.frame(var1 = c(), var2=c(), estimate=c(), p.value = c(), statistic = c(), method = c())
+  for (m in c("pearson", "kendall")){
+    print(paste0('Calculating correlation using method ', m))
+    result = cor.test(data[,var1], data[,var2], method = m)
+    newRow <- data.frame(var1, var2, result[c("estimate","p.value","statistic","method")], stringsAsFactors=FALSE)
+    results <- rbind(results, newRow)
+  }
+  return(results)
+  #return()
+}
+
+
+## loop through all genes
+setwd('~/Desktop/20190814_corrPlots')
 for (geneToCompare in names(sample_zScore_sum_withExprs)[4:length(sample_zScore_sum_withExprs)] ){
   
   # data we'll use
@@ -247,17 +269,57 @@ for (geneToCompare in names(sample_zScore_sum_withExprs)[4:length(sample_zScore_
   # regression
   myLinReg <- lm(formula = exprs ~ scores) #myLm$coefficients[1], myLm$coefficients[2]
   
+  # make plotData
+  plotData <- data.frame(scores = scores, exprs = exprs)
+
+  # ggplot scatterplot
+  l_withError <- ggplot(plotData, aes(x=scores, y=exprs)) + 
+    geom_point() +
+    geom_smooth(method=lm) +
+    theme_minimal() +
+    ggtitle(paste0('Integration score vs. expression level for gene ', geneToCompare))
+  
+  ggsave(filename = paste0('',geneToCompare,'.pdf'),
+         plot = l_withError,
+         device = 'pdf',
+         path = '~/Desktop/20190814_corrPlots',
+         width = 20,
+         height = 20,
+         units = 'cm')
+  
+  l_noError <- ggplot(plotData, aes(x=scores, y=exprs)) + 
+    geom_point() +
+    geom_smooth(method=lm, se=FALSE) +
+    theme_minimal() +
+    ggtitle(paste0('Integration score vs. expression level for gene ', geneToCompare))
+  
+    ggsave(filename = paste0('',geneToCompare,'_noConfInt.pdf'),
+         plot = l_withError,
+         device = 'pdf',
+         path = '~/Desktop/20190814_corrPlots',
+         width = 20,
+         height = 20,
+         units = 'cm')
+
+  print(l_withError)
+  print(l_noError)
+  
+  print(paste0('### TESTING CORRELATION FOR ', geneToCompare, '###'))
+  
+  corrs <- corrFunc('scores', 'exprs', plotData)
+  
+  write.csv( corrs, file = paste0('correlations_scoreVgene_', geneToCompare, '.csv'), quote = FALSE )
 
   
   # plot
-  plot(scores,exprs,
-       main = paste0('Z-score Severity Score vs. \nRlog Normed/Batch Corrected Expression of ', geneToCompare),
-       xlab = 'Z-score based severity score',
-       ylab = 'Expression')
-  abline(myLinReg$coefficients[1], myLinReg$coefficients[2])
-  
-  print(paste0('### TESTING FOR ', geneToCompare, '###'))
-  print( cor.test(scores, exprs, method = c("pearson", "kendall", "spearman")) )
+  # plot(scores,exprs,
+  #      main = paste0('Z-score Severity Score vs. \nRlog Normed/Batch Corrected Expression of ', geneToCompare),
+  #      xlab = 'Z-score based severity score',
+  #      ylab = 'Expression')
+  # abline(myLinReg$coefficients[1], myLinReg$coefficients[2])
+  # 
+  # print(paste0('### TESTING FOR ', geneToCompare, '###'))
+  # write( cor.test(scores, exprs, method = c("pearson", "kendall", "spearman")) )
 
   
 }

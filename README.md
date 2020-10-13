@@ -119,7 +119,7 @@ For the versions available, see the [tags on this repository](https://github.com
 <a name="authors"></a>
 ## Authors
 
-* **Kristin Muench** - *Initial work* - kmuench@stanford.edu - GitHub: [kmuench](https://github.com/kmuench)
+* **Kristin Muench** - GitHub: [kmuench](https://github.com/kmuench)
 
 <a name="acknow"></a>
 ## Acknowledgments

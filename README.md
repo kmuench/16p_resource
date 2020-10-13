@@ -11,21 +11,6 @@ It is divided into two sections. The names are a bit of a misnomer, and left ove
 - **"figure5"**: contains a differential expression analysis of the **integration-negative clones** aligned with STAR and counted with htseq-count. 
 - **"figure6"**: contains an independent bioinformatic **comparison of integration-negative and Integration-positive clones** aligned using kallisto.
 
-Within each figure directory, the code has been broken up into several parts. You should run the code in this order:
-
-Figure 5
-
-1. setup.Rmd
-2. deseq.Rmd
-
-Figure 6
-
-1. tximport_setup.Rmd
-2. deseq.Rmd
-3. barPlots.Rmd OR heatmaps.Rmd OR GSEA.Rmd
-
-This code is written to have a separate output file for each distinct date of run, when the date of run is defined within the userVars.csv file. This way, the user can maintain copies of all output as small tweaks are made to the code. 
-
 <a name="getstart"></a>
 ## Getting Started
 
@@ -36,7 +21,7 @@ The data will be made available on GEO (under embargo during revisions as of Oct
 
 #### Figure 5
 
-Setup 
+setup.Rmd
 
 * Install the following 
 
@@ -48,7 +33,7 @@ Setup
     + [SVA Package](https://www.bioconductor.org/packages/release/bioc/html/sva.html)
 
 
-DESeq
+DESeq.Rmd
 
 * In addition to the packages required for Setup, install the following 
 
@@ -56,7 +41,7 @@ DESeq
 
 #### Figure 6
 
-tximport_Setup
+tximport_Setup.Rmd
 
 * Install the following
 
@@ -69,28 +54,48 @@ tximport_Setup
     + [genefilter Package](http://bioconductor.org/packages/release/bioc/html/genefilter.html)
     + [ggrepel Package](https://cran.r-project.org/web/packages/ggrepel/index.html)
 
-deseq
+deseq.Rmd
 
 * Install the following 
 
     + [DESeqAid Package](https://github.com/kmuench/DESeqAid)
     + [DESeq2 Package](http://bioconductor.org/packages/release/bioc/html/DESeq2.html)
 
-heatmaps
+heatmaps.Rmd
 
 * Install the following
 
     + [R ColorBrewer](https://www.rdocumentation.org/packages/RColorBrewer/versions/1.1-2/topics/RColorBrewer)
 
-barPlots
+barPlots.Rmd
 
 * In addition to the packages required for Setup, install the following 
 
     + [reshape2](https://cran.r-project.org/web/packages/reshape2/index.html)
 
-GSEA
+GSEA.Rmd
 
 * GSEA [.jar file](http://software.broadinstitute.org/gsea/login.jsp)
+
+### How to run
+
+1. Fill out userVars.csv. I thought it might be easier to import and document variables using this spreadsheet rather than using a .bashrc file.
+
+2. Run the Rmd files. Within each figure directory, the code has been broken up into several parts. You should run the code in this order:
+
+*Figure 5*
+
+1. setup.Rmd
+2. deseq.Rmd
+
+*Figure 6*
+
+1. tximport_setup.Rmd
+2. deseq.Rmd
+3. barPlots.Rmd OR heatmaps.Rmd OR GSEA.Rmd
+
+This code is written to have a separate output file for each distinct date of run, when the date of run is defined within the userVars.csv file. This way, the user can maintain copies of all output as small tweaks are made to the code. 
+
 
 <a name="misc"></a>
 ## Additional Info

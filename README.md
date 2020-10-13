@@ -1,5 +1,10 @@
 # 16p_resource
 
+[ Introduction ](#intro) | [ Getting Started ](#getstart) | [ Versioning ](#ver) | [ Authors ](#authors) | [ Acknowledgements ](#acknow)
+
+<a name="intro"></a>
+# Introduction
+
 This repo contains the code used to generate analyses and generate figures for Roth, Muench et. al. This paper describes a new resource of patient-derived iPSCs bearing a 16p11.2 copy number variant, explores the potential utility of these clones, and describes the possible impact of clonal integration on iPSC-derived tissue models. I have written this README with other biologists in mind who might be interested in following up on our analyses or investigating their own integration effects.
 
 It is divided into two sections. The directory "figure5" contains a differential expression analysis of the Integration-negative clones aligned with STAR and counted with htseq-count. The directory "figure6" contains an independent bioinformatic comparison of Integration-negative and Integration-positive clones aligned using kallisto.
@@ -19,6 +24,7 @@ Figure 6
 
 This code is written to have a separate output file for each distinct date of run, when the date of run is defined within the userVars.csv file. This way, the user can maintain copies of all output as small tweaks are made to the code. 
 
+<a name="getstart"></a>
 ## Getting Started
 
 ### Prerequisites
@@ -93,19 +99,17 @@ GSEA
 
 * GSEA [.jar file](http://software.broadinstitute.org/gsea/login.jsp)
 
-
+<a name="ver"></a>
 ## Versioning
 
 For the versions available, see the [tags on this repository](https://github.com/kmuench/16p_resource/tags). 
 
+<a name="authors"></a>
 ## Authors
 
 * **Kristin Muench** - *Initial work* - kmuench@stanford.edu - GitHub: [kmuench](https://github.com/kmuench)
 
-## License
-
-This project is licensed under the MIT License - see the [license.txt](license.txt) file for details
-
+<a name="acknow"></a>
 ## Acknowledgments
 
 * Thank you to [PurpleBooth](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2#file-readme-template-md) for the README template

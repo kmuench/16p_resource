@@ -1,15 +1,17 @@
 # 16p_resource
 
-[ Introduction ](#intro) | [ Getting Started ](#getstart) | [ Versioning ](#ver) | [ Authors ](#authors) | [ Acknowledgements ](#acknow)
+[ Introduction ](#intro) | [ Getting Started ](#getstart) | [ Additional Info ](#misc) | [ Versioning ](#ver) | [ Authors ](#authors) | [ Acknowledgements ](#acknow)
 
 <a name="intro"></a>
 # Introduction
 
 This repo contains the code used to generate analyses and generate figures for Roth, Muench et. al. This paper describes a new resource of patient-derived iPSCs bearing a 16p11.2 copy number variant, explores the potential utility of these clones, and describes the possible impact of clonal integration on iPSC-derived tissue models. I have written this README with other biologists in mind who might be interested in following up on our analyses or investigating their own integration effects.
 
-It is divided into two sections. The directory "figure5" contains a differential expression analysis of the Integration-negative clones aligned with STAR and counted with htseq-count. The directory "figure6" contains an independent bioinformatic comparison of Integration-negative and Integration-positive clones aligned using kallisto.
+It is divided into two sections. The names are a bit of a misnomer, and left over from an earlier revision:
+- **"figure5"**: contains a differential expression analysis of the **integration-negative clones** aligned with STAR and counted with htseq-count. 
+- **"figure6"**: contains an independent bioinformatic **comparison of integration-negative and Integration-positive clones** aligned using kallisto.
 
-Within each figure directory, the code is intended to be modular. You should run the code in this order:
+Within each figure directory, the code has been broken up into several parts. You should run the code in this order:
 
 Figure 5
 
@@ -27,21 +29,12 @@ This code is written to have a separate output file for each distinct date of ru
 <a name="getstart"></a>
 ## Getting Started
 
-### Prerequisites
+### Data
+The data will be made available on GEO (under embargo during revisions as of October 12, 2020).
 
-For the alignment and counting steps, I used one of two different aligners
+### Dependencies
 
-* [STAR](http://labshare.cshl.edu/shares/gingeraslab/www-data/dobin/STAR/STAR.posix/doc/STARmanual.pdf) (Figure 5) with [htseq-count](https://htseq.readthedocs.io/en/master/count.html)
-
-* [kallisto](https://pachterlab.github.io/kallisto/about) (Figure 6)
-
-I performed both of these on the [Stanford Center for Personalized Medicine Cluster](http://med.stanford.edu/scgpm.html). I recommend running STAR on a cluster. In theory, you should be able to run kallisto on a laptop.
-
-I performed subsequent analyses using [R](https://www.r-project.org/) and [RStudio](https://www.rstudio.com/).
-
-You will also need:
-
-== Figure 5 ==
+#### Figure 5
 
 Setup 
 
@@ -61,7 +54,7 @@ DESeq
 
     + [R ColorBrewer](https://www.rdocumentation.org/packages/RColorBrewer/versions/1.1-2/topics/RColorBrewer)
 
-== Figure 6 ==
+#### Figure 6
 
 tximport_Setup
 
@@ -98,6 +91,18 @@ barPlots
 GSEA
 
 * GSEA [.jar file](http://software.broadinstitute.org/gsea/login.jsp)
+
+<a name="misc"></a>
+## Additional Info
+For the alignment and counting steps, I used one of two different aligners
+
+* [STAR](http://labshare.cshl.edu/shares/gingeraslab/www-data/dobin/STAR/STAR.posix/doc/STARmanual.pdf) (Figure 5) with [htseq-count](https://htseq.readthedocs.io/en/master/count.html)
+
+* [kallisto](https://pachterlab.github.io/kallisto/about) (Figure 6)
+
+I performed both of these on the [Stanford Center for Personalized Medicine Cluster](http://med.stanford.edu/scgpm.html). I recommend running STAR on a cluster. In theory, you should be able to run kallisto on a laptop.
+
+I performed subsequent analyses using [R](https://www.r-project.org/) and [RStudio](https://www.rstudio.com/).
 
 <a name="ver"></a>
 ## Versioning

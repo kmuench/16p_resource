@@ -79,9 +79,9 @@ GSEA.Rmd
 
 ### How to run
 
-1. Fill out userVars.csv. I thought it might be easier to import and document variables using this spreadsheet rather than using a .bashrc file.
+#### 1. Fill out userVars.csv. I thought it might be easier to import and document variables using this spreadsheet rather than using a .bashrc file.
 
-2. Run the Rmd files. Within each figure directory, the code has been broken up into several parts. You should run the code in this order:
+#### 2. Run the Rmd files. Within each figure directory, the code has been broken up into several parts. You should run the code in this order:
 
 *Figure 5*
 
